@@ -427,13 +427,76 @@
     for(const s of block.body){ execStmt(s, env); }
   }
 
+  function ensureBrowserOutputSink(){
+    if(typeof document === 'undefined') return null;
+    let wrapper=document.querySelector('[data-mini4gl-output]');
+    let pre=null;
+    if(!wrapper){
+      wrapper=document.createElement('section');
+      wrapper.dataset.mini4glOutput='';
+      wrapper.style.position='fixed';
+      wrapper.style.bottom='1rem';
+      wrapper.style.right='1rem';
+      wrapper.style.maxWidth='min(420px, 90vw)';
+      wrapper.style.maxHeight='50vh';
+      wrapper.style.background='rgba(20,20,20,0.92)';
+      wrapper.style.color='#f0f0f0';
+      wrapper.style.borderRadius='8px';
+      wrapper.style.boxShadow='0 8px 24px rgba(0,0,0,0.35)';
+      wrapper.style.fontFamily='"Fira Code", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
+      wrapper.style.zIndex='9999';
+
+      const heading=document.createElement('header');
+      heading.textContent='Mini 4GL - Sortie';
+      heading.style.padding='0.6rem 0.75rem';
+      heading.style.fontSize='0.9rem';
+      heading.style.fontWeight='600';
+      heading.style.borderBottom='1px solid rgba(255,255,255,0.12)';
+      wrapper.appendChild(heading);
+
+      pre=document.createElement('pre');
+      pre.style.margin='0';
+      pre.style.padding='0.75rem';
+      pre.style.fontSize='0.85rem';
+      pre.style.lineHeight='1.4';
+      pre.style.overflow='auto';
+      pre.style.maxHeight='calc(50vh - 2.5rem)';
+      wrapper.appendChild(pre);
+
+      document.body.appendChild(wrapper);
+    } else {
+      pre=wrapper.querySelector('pre');
+      if(!pre){
+        pre=document.createElement('pre');
+        pre.style.margin='0';
+        pre.style.padding='0.75rem';
+        pre.style.fontSize='0.85rem';
+        pre.style.lineHeight='1.4';
+        pre.style.overflow='auto';
+        pre.style.maxHeight='calc(50vh - 2.5rem)';
+        wrapper.appendChild(pre);
+      }
+    }
+    pre.textContent='';
+    return (line)=>{
+      pre.textContent += String(line) + '\n';
+      pre.scrollTop = pre.scrollHeight;
+    };
+  }
+
   function interpret4GL(source, opts={}){
     const tokens=tokenize(source);
     const parser=new Parser(tokens);
     const ast=parser.parseProgram();
     const outputs=[];
+    const browserSink = !opts.onOutput ? ensureBrowserOutputSink() : null;
+    const callback = typeof opts.onOutput === 'function'
+      ? opts.onOutput
+      : (browserSink || (typeof console !== 'undefined' && typeof console.log === 'function'
+          ? line => console.log(line)
+          : null));
     const env={ vars:Object.create(null), inputs:[...(opts.inputs||[])], output: (line)=>{
-      if(opts.onOutput) opts.onOutput(String(line));
+      if(callback) callback(String(line));
       outputs.push(String(line));
     }};
     for(const stmt of ast.body){ execStmt(stmt, env); }
