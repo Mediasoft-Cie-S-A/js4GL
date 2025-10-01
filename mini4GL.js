@@ -51,7 +51,7 @@
 (function (global) {
   const KEYWORDS = new Set([
     'ASSIGN','DISPLAY','PRINT','INPUT','IF','THEN','ELSE','END','DO','WHILE','REPEAT','LEAVE','NEXT','AND','OR','NOT','FOR','EACH','WHERE','BY','OF',
-    'DEFINE','VARIABLE','AS','NO','UNDO','INIT','LABEL','FORMAT','WITH','CENTERED'
+    'DEFINE','VARIABLE','AS','NO','UNDO','INIT','LABEL','FORMAT','WITH','CENTERED','PROCEDURE','RUN','PARAMETER','OUTPUT'
   ]);
 
   let defaultPrismaClient;
@@ -149,7 +149,9 @@
     switch(t.type){
       case 'ASSIGN':
       case 'IDENT': return this.parseAssignLike();
-      case 'DEFINE': return this.parseDefineVariable();
+      case 'DEFINE': return this.parseDefineStatement();
+      case 'PROCEDURE': return this.parseProcedure();
+      case 'RUN': return this.parseRun();
       case 'DISPLAY':
       case 'PRINT': return this.parseDisplay();
       case 'INPUT': return this.parseInput();
@@ -177,9 +179,26 @@
     return { type:'Assign', id: id.toLowerCase(), value };
   };
 
-  Parser.prototype.parseDefineVariable=function(){
+  Parser.prototype.parseDefineStatement=function(){
     this.eat('DEFINE');
-    this.eat('VARIABLE');
+    const next=this.peek();
+    if(next.type==='VARIABLE'){
+      this.eat('VARIABLE');
+      const details=this.parseDefineDetails();
+      this.optionalDot();
+      return { type:'DefineVariable', ...details };
+    }
+    if(next.type==='INPUT' || next.type==='OUTPUT'){
+      const mode=this.eat(next.type).type;
+      this.eat('PARAMETER');
+      const details=this.parseDefineDetails();
+      this.optionalDot();
+      return { type:'DefineParameter', mode, ...details };
+    }
+    throw new SyntaxError('Unsupported DEFINE form');
+  };
+
+  Parser.prototype.parseDefineDetails=function(){
     const id=this.eat('IDENT').value;
     let dataType=null;
     if(this.match('AS')){
@@ -209,8 +228,7 @@
       }
       break;
     }
-    this.optionalDot();
-    return { type:'DefineVariable', id:id.toLowerCase(), dataType, init, noUndo };
+    return { id:id.toLowerCase(), dataType, init, noUndo };
   };
 
   Parser.prototype.parseDisplay=function(){
@@ -324,6 +342,64 @@
       body.push(this.parseStatement());
     }
     return body;
+  };
+
+  Parser.prototype.parseProcedure=function(){
+    this.eat('PROCEDURE');
+    const name=this.eat('IDENT').value.toLowerCase();
+    if(this.match('COLON')){ /* optional colon before body */ }
+    const body=[];
+    const parameters=[];
+    while(true){
+      const next=this.peek();
+      if(next.type==='EOF'){ throw new SyntaxError(`Unexpected EOF inside PROCEDURE ${name}`); }
+      if(next.type==='END'){
+        const lookahead=this.toks[this.i+1];
+        if(lookahead && lookahead.type==='PROCEDURE'){
+          this.eat('END');
+          this.eat('PROCEDURE');
+          this.optionalDot();
+          break;
+        }
+      }
+      if(this.match('DOT')) continue;
+      const stmt=this.parseStatement();
+      if(stmt.type==='DefineParameter'){
+        parameters.push({
+          name: stmt.id,
+          mode: stmt.mode,
+          dataType: stmt.dataType,
+          init: stmt.init,
+          noUndo: stmt.noUndo
+        });
+        continue;
+      }
+      body.push(stmt);
+    }
+    return { type:'Procedure', name, parameters, body };
+  };
+
+  Parser.prototype.parseRun=function(){
+    this.eat('RUN');
+    const name=this.eat('IDENT').value.toLowerCase();
+    const args=[];
+    if(this.match('LPAREN')){
+      if(this.peek().type!=='RPAREN'){
+        while(true){
+          let mode=null;
+          const modeTok=this.peek();
+          if(modeTok.type==='INPUT' || modeTok.type==='OUTPUT'){
+            mode=this.eat(modeTok.type).type;
+          }
+          const expr=this.parseExpr();
+          args.push({ mode: mode || null, expr });
+          if(!this.match('COMMA')) break;
+        }
+      }
+      this.eat('RPAREN');
+    }
+    this.optionalDot();
+    return { type:'Run', name, args };
   };
 
   Parser.prototype.parseFieldPath=function(){
@@ -476,6 +552,39 @@
     if(['LOGICAL','BOOLEAN'].includes(upper)) return false;
     if(['CHAR','CHARACTER','STRING'].includes(upper)) return '';
     return null;
+  }
+
+  function hasVar(env, name){
+    let current=env;
+    const key=name.toLowerCase();
+    while(current){
+      if(Object.prototype.hasOwnProperty.call(current.vars, key)) return true;
+      current=current.parent || null;
+    }
+    return false;
+  }
+
+  function getVar(env, name){
+    let current=env;
+    const key=name.toLowerCase();
+    while(current){
+      if(Object.prototype.hasOwnProperty.call(current.vars, key)) return current.vars[key];
+      current=current.parent || null;
+    }
+    return null;
+  }
+
+  function setVar(env, name, value){
+    let current=env;
+    const key=name.toLowerCase();
+    while(current){
+      if(Object.prototype.hasOwnProperty.call(current.vars, key)){
+        current.vars[key]=value;
+        return;
+      }
+      current=current.parent || null;
+    }
+    env.vars[key]=value;
   }
 
   function normalizeTwoDigitYear(year){
@@ -637,7 +746,7 @@
     if(!path || !path.length) return null;
     const [head, ...rest]=path;
     const key=head.toLowerCase();
-    let value=env.vars[key];
+    let value=getVar(env, key);
     if(typeof value==='undefined' && env.records){ value=env.records[key]; }
     if(rest.length===0) return value ?? null;
     for(const segment of rest){
@@ -705,7 +814,7 @@
       return stripped;
     }
     if(node.type==='Var'){
-      if(Object.prototype.hasOwnProperty.call(env.vars, node.name)) return null;
+      if(hasVar(env, node.name)) return null;
       return [node.name];
     }
     return null;
@@ -716,7 +825,7 @@
       case 'Number': return node.value;
       case 'String': return node.value;
       case 'Var':{
-        if(Object.prototype.hasOwnProperty.call(env.vars, node.name)) return env.vars[node.name];
+        if(hasVar(env, node.name)) return getVar(env, node.name);
         throw new Error(`Unknown variable ${node.name} in WHERE clause`);
       }
       case 'Field': return resolveFieldValue(node.path, env);
@@ -791,11 +900,9 @@
       case 'Number': return node.value;
       case 'String': return node.value;
       case 'Var':{
-        let value;
-        if(Object.prototype.hasOwnProperty.call(env.vars, node.name)) value = env.vars[node.name];
-        else if(env.records && Object.prototype.hasOwnProperty.call(env.records, node.name)) value = env.records[node.name];
-        else value = null;
-        return value;
+        if(hasVar(env, node.name)) return getVar(env, node.name);
+        if(env.records && Object.prototype.hasOwnProperty.call(env.records, node.name)) return env.records[node.name];
+        return null;
       }
       case 'Field': return resolveFieldValue(node.path, env);
       case 'Unary':{
@@ -854,15 +961,78 @@
     }
   }
 
+  async function runProcedure(node, env){
+    if(!env.procedures || !env.procedures[node.name]){
+      throw new Error(`Unknown procedure ${node.name}`);
+    }
+    const proc=env.procedures[node.name];
+    const localEnv={
+      vars:Object.create(null),
+      varDefs:Object.create(null),
+      inputs:env.inputs,
+      output:env.output,
+      prisma:env.prisma,
+      records:env.records,
+      procedures:env.procedures,
+      parent:env
+    };
+    const params=proc.parameters || [];
+    const args=node.args || [];
+    if(args.length!==params.length){
+      throw new Error(`Procedure ${proc.name || node.name} expects ${params.length} argument(s) but got ${args.length}`);
+    }
+    const outputBindings=[];
+    params.forEach((param, index)=>{
+      const arg=args[index];
+      const expectedMode=(param.mode || 'INPUT').toUpperCase();
+      const argMode=(arg && arg.mode) ? String(arg.mode).toUpperCase() : 'INPUT';
+      if(expectedMode==='INPUT'){
+        if(!arg) throw new Error(`Missing argument for INPUT parameter ${param.name}`);
+        if(arg.mode && argMode!=='INPUT') throw new Error(`Argument ${index+1} for procedure ${proc.name} must use INPUT`);
+        const value=evalExpr(arg.expr, env);
+        localEnv.vars[param.name]=value;
+      } else if(expectedMode==='OUTPUT'){
+        if(!arg) throw new Error(`Missing argument for OUTPUT parameter ${param.name}`);
+        if(argMode!=='OUTPUT') throw new Error(`Argument ${index+1} for procedure ${proc.name} must use OUTPUT`);
+        if(arg.expr.type!=='Var') throw new Error('OUTPUT arguments must be variables');
+        const targetName=arg.expr.name;
+        outputBindings.push({ local:param.name, target:targetName });
+        let initial=initialValueForType(param.dataType);
+        if(initial===null && hasVar(env, targetName)){
+          initial=getVar(env, targetName);
+        }
+        localEnv.vars[param.name]=initial;
+      } else {
+        throw new Error(`Unsupported parameter mode ${param.mode}`);
+      }
+    });
+    await execBlock({type:'Block', body:proc.body}, localEnv);
+    for(const binding of outputBindings){
+      setVar(env, binding.target, localEnv.vars[binding.local]);
+    }
+  }
+
   async function execStmt(node, env){
     switch(node.type){
       case 'Empty': return;
-      case 'Assign': env.vars[node.id]=evalExpr(node.value,env); return;
+      case 'Assign': setVar(env, node.id, evalExpr(node.value,env)); return;
       case 'DefineVariable':{
         const value = node.init ? evalExpr(node.init, env) : initialValueForType(node.dataType);
         env.vars[node.id]=value;
         if(env.varDefs) env.varDefs[node.id]={ dataType: node.dataType, noUndo: node.noUndo };
         return;
+      }
+      case 'DefineParameter':{
+        // Parameters are handled during PROCEDURE parsing/execution; they should not execute at runtime.
+        return;
+      }
+      case 'Procedure':{
+        if(!env.procedures) env.procedures=Object.create(null);
+        env.procedures[node.name]=node;
+        return;
+      }
+      case 'Run':{
+        return runProcedure(node, env);
       }
       case 'Display':{
         const parts=node.items.map(item=>{
@@ -886,7 +1056,7 @@
       }
       case 'Input':{
         const val = env.inputs.length? env.inputs.shift() : null;
-        env.vars[node.id]=val; return;
+        setVar(env, node.id, val); return;
       }
       case 'If':{
         if(truthy(evalExpr(node.test,env))) await execBlock(node.consequent,env);
@@ -1056,7 +1226,9 @@
       inputs:[...(opts.inputs||[])],
       output:null,
       prisma: prismaClient || null,
-      records: Object.create(null)
+      records: Object.create(null),
+      procedures:Object.create(null),
+      parent:null
     };
     env.output=(line)=>{
       if(callback) callback.call(env, String(line));
