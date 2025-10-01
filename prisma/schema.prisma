@@ -8,18 +8,29 @@ generator client {
 }
 
 model Customer {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  createdAt DateTime @default(now())
-  orders    Order[]
+  id          Int      @id @default(autoincrement())
+  custNum     Int      @unique
+  name        String
+  contact     String?
+  phone       String?
+  address     String?
+  city        String
+  state       String   @default("NH")
+  postalCode  String?
+  balance     Float
+  creditLimit Float
+  createdAt   DateTime @default(now())
+  orders      Order[]
 }
 
 model Order {
-  id         Int      @id @default(autoincrement())
+  id         Int       @id @default(autoincrement())
+  orderNum   Int       @unique
   total      Float
   status     String
-  placedAt   DateTime @default(now())
-  customer   Customer @relation(fields: [customerId], references: [id])
+  orderDate  DateTime
+  shipDate   DateTime?
+  createdAt  DateTime  @default(now())
+  customer   Customer  @relation(fields: [customerId], references: [id])
   customerId Int
 }
