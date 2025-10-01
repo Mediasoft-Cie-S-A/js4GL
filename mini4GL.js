@@ -50,8 +50,11 @@
 
 (function (global) {
   const KEYWORDS = new Set([
-    'ASSIGN','DISPLAY','PRINT','INPUT','IF','THEN','ELSE','END','DO','WHILE','REPEAT','LEAVE','NEXT','AND','OR','NOT'
+    'ASSIGN','DISPLAY','PRINT','INPUT','IF','THEN','ELSE','END','DO','WHILE','REPEAT','LEAVE','NEXT','AND','OR','NOT','FOR','EACH','WHERE','BY','OF'
   ]);
+
+  let defaultPrismaClient;
+  let triedDefaultPrisma = false;
 
   function isAlpha(ch){return /[A-Za-z_]/.test(ch);} 
   function isAlnum(ch){return /[A-Za-z0-9_]/.test(ch);} 
@@ -146,6 +149,7 @@
       case 'DO': return this.parseDo();
       case 'REPEAT': return this.parseRepeat();
       case 'WHILE': return this.parseWhile();
+      case 'FOR': return this.parseForEach();
       case 'END': this.eat('END'); this.optionalDot(); return {type:'Empty'};
       default:
         throw new SyntaxError(`Unexpected token ${t.type}`);
@@ -244,6 +248,46 @@
     return body;
   };
 
+  Parser.prototype.parseFieldPath=function(){
+    const segments=[this.eat('IDENT').value];
+    while(true){
+      const dotTok=this.peek();
+      const nextTok=this.toks[this.i+1];
+      if(dotTok.type==='DOT' && nextTok && nextTok.type==='IDENT'){
+        const nextStart=nextTok.pos - nextTok.value.length;
+        if(nextStart===dotTok.pos+1){
+          this.eat('DOT');
+          segments.push(this.eat('IDENT').value);
+          continue;
+        }
+      }
+      break;
+    }
+    return segments;
+  };
+
+  Parser.prototype.parseForEach=function(){
+    this.eat('FOR');
+    this.eat('EACH');
+    const target=this.eat('IDENT').value;
+    let relation=null;
+    if(this.match('OF')){
+      relation=this.eat('IDENT').value;
+    }
+    let where=null;
+    if(this.match('WHERE')){
+      where=this.parseExpr();
+    }
+    const orderBy=[];
+    while(this.match('BY')){
+      orderBy.push(this.parseFieldPath());
+    }
+    this.eat('COLON');
+    const body=this.parseBlockStatements();
+    this.eat('END'); this.optionalDot();
+    return { type:'ForEach', target, relation, where, orderBy, body };
+  };
+
   // Expressions: precedence climbing
   Parser.prototype.parseExpr=function(){
     return this.parseOr();
@@ -307,14 +351,29 @@
     if(t.type==='NUMBER'){ this.eat('NUMBER'); return {type:'Number', value:t.value}; }
     if(t.type==='STRING'){ this.eat('STRING'); return {type:'String', value:t.value}; }
     if(t.type==='IDENT'){
-      const name=this.eat('IDENT').value;
-      // function call? IDENT '(' args ')'
-      if(this.match('LPAREN')){
+      const segments=[this.eat('IDENT').value];
+      while(true){
+        const dotTok=this.peek();
+        const nextTok=this.toks[this.i+1];
+        if(dotTok.type==='DOT' && nextTok && nextTok.type==='IDENT'){
+          const nextStart=nextTok.pos - nextTok.value.length;
+          if(nextStart===dotTok.pos+1){
+            this.eat('DOT');
+            segments.push(this.eat('IDENT').value);
+            continue;
+          }
+        }
+        break;
+      }
+      if(segments.length===1 && this.match('LPAREN')){
         const args=[]; if(this.peek().type!=='RPAREN'){ args.push(this.parseExpr()); while(this.match('COMMA')) args.push(this.parseExpr()); }
         this.eat('RPAREN');
-        return { type:'Call', name:name.toUpperCase(), args };
+        return { type:'Call', name:segments[0].toUpperCase(), args };
       }
-      return { type:'Var', name:name.toLowerCase() };
+      if(segments.length>1){
+        return { type:'Field', path: segments };
+      }
+      return { type:'Var', name:segments[0].toLowerCase() };
     }
     if(this.match('LPAREN')){ const e=this.parseExpr(); this.eat('RPAREN'); return e; }
     throw new SyntaxError(`Unexpected token in expression: ${t.type}`);
@@ -332,11 +391,174 @@
     throw new Error('Bad compare op '+op);
   }
 
+  function lowerFirst(str){ return str ? str.charAt(0).toLowerCase() + str.slice(1) : str; }
+  function normalizeFieldSegment(seg){ return lowerFirst(seg); }
+
+  function resolveFieldValue(path, env){
+    if(!path || !path.length) return null;
+    const [head, ...rest]=path;
+    const key=head.toLowerCase();
+    let value=env.vars[key];
+    if(typeof value==='undefined' && env.records){ value=env.records[key]; }
+    if(rest.length===0) return value ?? null;
+    for(const segment of rest){
+      if(value==null) return null;
+      value=value[normalizeFieldSegment(segment)];
+    }
+    return value ?? null;
+  }
+
+  function stripTargetFromPath(rawPath, targetLower){
+    const path=[...rawPath];
+    if(path.length && path[0].toLowerCase()===targetLower){ path.shift(); }
+    return path;
+  }
+
+  function comparisonLeaf(op, value){
+    switch(op){
+      case '=':
+      case '==': return { equals: value };
+      case '<>': return { not: value };
+      case '<': return { lt: value };
+      case '<=': return { lte: value };
+      case '>': return { gt: value };
+      case '>=': return { gte: value };
+      default: return null;
+    }
+  }
+
+  function buildComparison(path, op, value){
+    const leaf=comparisonLeaf(op, value);
+    if(!leaf) throw new Error('Unsupported operator '+op+' in WHERE clause');
+    let acc=leaf;
+    for(let i=path.length-1;i>=0;i--){
+      acc={ [normalizeFieldSegment(path[i])]: acc };
+    }
+    return acc;
+  }
+
+  function asLogicalArray(clause, key){
+    if(!clause) return [];
+    if(clause[key]) return clause[key];
+    return [clause];
+  }
+
+  function mergeWhereClauses(a,b){
+    if(!a) return b;
+    if(!b) return a;
+    return { AND: [...asLogicalArray(a,'AND'), ...asLogicalArray(b,'AND')] };
+  }
+
+  function mergeOrClauses(a,b){
+    const arr=[...asLogicalArray(a,'OR'), ...asLogicalArray(b,'OR')];
+    return { OR: arr };
+  }
+
+  function fieldPathFromNode(node, env, targetLower){
+    if(!node) return null;
+    if(node.type==='Field'){
+      const stripped=stripTargetFromPath(node.path, targetLower);
+      if(stripped.length===node.path.length){
+        // path did not start with target name; treat as non-field
+        return null;
+      }
+      if(!stripped.length) return null;
+      return stripped;
+    }
+    if(node.type==='Var'){
+      if(Object.prototype.hasOwnProperty.call(env.vars, node.name)) return null;
+      return [node.name];
+    }
+    return null;
+  }
+
+  function literalFromNode(node, env){
+    switch(node.type){
+      case 'Number': return node.value;
+      case 'String': return node.value;
+      case 'Var':{
+        if(Object.prototype.hasOwnProperty.call(env.vars, node.name)) return env.vars[node.name];
+        throw new Error(`Unknown variable ${node.name} in WHERE clause`);
+      }
+      case 'Field': return resolveFieldValue(node.path, env);
+      default:
+        throw new Error('Unsupported literal in WHERE clause');
+    }
+  }
+
+  function flipOperator(op){
+    switch(op){
+      case '<': return '>';
+      case '<=': return '>=';
+      case '>': return '<';
+      case '>=': return '<=';
+      default: return op;
+    }
+  }
+
+  function buildWhere(node, env, targetLower){
+    if(!node) return null;
+    switch(node.type){
+      case 'Logical':{
+        const left=buildWhere(node.left, env, targetLower);
+        const right=buildWhere(node.right, env, targetLower);
+        if(node.op==='AND') return mergeWhereClauses(left, right);
+        if(node.op==='OR') return mergeOrClauses(left, right);
+        throw new Error('Unsupported logical operator '+node.op+' in WHERE clause');
+      }
+      case 'Binary':{
+        const leftPath=fieldPathFromNode(node.left, env, targetLower);
+        const rightPath=fieldPathFromNode(node.right, env, targetLower);
+        if(leftPath && !rightPath){
+          const value=literalFromNode(node.right, env);
+          return buildComparison(leftPath, node.op, value);
+        }
+        if(rightPath && !leftPath){
+          const value=literalFromNode(node.left, env);
+          return buildComparison(rightPath, flipOperator(node.op), value);
+        }
+        throw new Error('WHERE clause must compare a field to a value');
+      }
+      default:
+        throw new Error('Unsupported expression in WHERE clause');
+    }
+  }
+
+  function buildOrderBy(path, targetLower){
+    const stripped=stripTargetFromPath(path, targetLower);
+    const effective=stripped.length ? stripped : path;
+    if(!effective.length) throw new Error('BY clause requires a field name');
+    let acc='asc';
+    for(let i=effective.length-1;i>=0;i--){
+      acc={ [normalizeFieldSegment(effective[i])]: acc };
+    }
+    return acc;
+  }
+
+  function relationWhere(targetLower, relationLower, parentRecord){
+    if(targetLower==='order' && relationLower==='customer'){
+      if(!parentRecord || typeof parentRecord.id==='undefined') throw new Error('Parent Customer record missing id for Order OF Customer');
+      return { customerId: parentRecord.id };
+    }
+    if(targetLower==='customer' && relationLower==='order'){
+      if(!parentRecord || typeof parentRecord.customerId==='undefined') throw new Error('Parent Order record missing customerId for Customer OF Order');
+      return { id: parentRecord.customerId };
+    }
+    throw new Error(`Unsupported relation ${targetLower} OF ${relationLower}`);
+  }
+
   function evalExpr(node, env){
     switch(node.type){
       case 'Number': return node.value;
       case 'String': return node.value;
-      case 'Var': return env.vars[node.name] ?? null;
+      case 'Var':{
+        let value;
+        if(Object.prototype.hasOwnProperty.call(env.vars, node.name)) value = env.vars[node.name];
+        else if(env.records && Object.prototype.hasOwnProperty.call(env.records, node.name)) value = env.records[node.name];
+        else value = null;
+        return value;
+      }
+      case 'Field': return resolveFieldValue(node.path, env);
       case 'Unary':{
         const v=evalExpr(node.arg, env);
         if(node.op==='-') return -Number(v||0);
@@ -377,7 +599,7 @@
     }
   }
 
-  function execStmt(node, env){
+  async function execStmt(node, env){
     switch(node.type){
       case 'Empty': return;
       case 'Assign': env.vars[node.id]=evalExpr(node.value,env); return;
@@ -390,23 +612,23 @@
         env.vars[node.id]=val; return;
       }
       case 'If':{
-        if(truthy(evalExpr(node.test,env))) execBlock(node.consequent,env);
-        else if(node.alternate) execBlock(node.alternate,env);
+        if(truthy(evalExpr(node.test,env))) await execBlock(node.consequent,env);
+        else if(node.alternate) await execBlock(node.alternate,env);
         return;
       }
       case 'Do':{
         if(node.whileExpr){
           while(truthy(evalExpr(node.whileExpr,env))){
-            execBlock({type:'Block', body:node.body}, env);
+            await execBlock({type:'Block', body:node.body}, env);
           }
         } else {
-          execBlock({type:'Block', body:node.body}, env);
+          await execBlock({type:'Block', body:node.body}, env);
         }
         return;
       }
       case 'Repeat':{
         if(node.whileExpr){
-          while(truthy(evalExpr(node.whileExpr,env))){ execBlock({type:'Block', body:node.body}, env); }
+          while(truthy(evalExpr(node.whileExpr,env))){ await execBlock({type:'Block', body:node.body}, env); }
         } else {
           // unconditional repeat -> avoid infinite loop; user can extend with LEAVE/NEXT
           throw new Error('REPEAT without WHILE not supported in this mini-interpreter');
@@ -414,17 +636,58 @@
         return;
       }
       case 'While':{
-        while(truthy(evalExpr(node.test,env))){ execBlock({type:'Block', body:node.body}, env); }
+        while(truthy(evalExpr(node.test,env))){ await execBlock({type:'Block', body:node.body}, env); }
         return;
       }
       case 'Block': return execBlock(node, env);
+      case 'ForEach':{
+        const prisma=env.prisma;
+        if(!prisma) throw new Error('Prisma client is required for FOR EACH statements');
+        const targetLower=node.target.toLowerCase();
+        const delegateName=lowerFirst(node.target);
+        const delegate=prisma[delegateName];
+        if(!delegate || typeof delegate.findMany!=='function'){
+          throw new Error(`Prisma model ${node.target} is not available`);
+        }
+        const query={};
+        const whereClause=buildWhere(node.where, env, targetLower);
+        if(whereClause) query.where=whereClause;
+        if(node.relation){
+          const parentKey=node.relation.toLowerCase();
+          const parentRecord=env.records ? env.records[parentKey] : undefined;
+          if(!parentRecord) throw new Error(`No active record for ${node.relation} to satisfy FOR EACH ${node.target} OF ${node.relation}`);
+          const relationClause=relationWhere(targetLower, parentKey, parentRecord);
+          query.where=mergeWhereClauses(query.where || null, relationClause);
+        }
+        if(node.orderBy && node.orderBy.length){
+          query.orderBy=node.orderBy.map(path=>buildOrderBy(path, targetLower));
+        }
+        const results=await delegate.findMany(query);
+        const hadRecord=env.records && Object.prototype.hasOwnProperty.call(env.records, targetLower);
+        const hadVar=Object.prototype.hasOwnProperty.call(env.vars, targetLower);
+        const prevRecord=hadRecord ? env.records[targetLower] : undefined;
+        const prevVar=hadVar ? env.vars[targetLower] : undefined;
+        if(env.records) env.records[targetLower]=null;
+        for(const row of results){
+          if(env.records) env.records[targetLower]=row;
+          env.vars[targetLower]=row;
+          await execBlock({type:'Block', body:node.body}, env);
+        }
+        if(env.records){
+          if(hadRecord) env.records[targetLower]=prevRecord;
+          else delete env.records[targetLower];
+        }
+        if(hadVar) env.vars[targetLower]=prevVar;
+        else delete env.vars[targetLower];
+        return;
+      }
       default:
         throw new Error('Unknown stmt node '+node.type);
     }
   }
 
-  function execBlock(block, env){
-    for(const s of block.body){ execStmt(s, env); }
+  async function execBlock(block, env){
+    for(const s of block.body){ await execStmt(s, env); }
   }
 
   function ensureBrowserOutputSink(){
@@ -484,7 +747,7 @@
     };
   }
 
-  function interpret4GL(source, opts={}){
+  async function interpret4GL(source, opts={}){
     const tokens=tokenize(source);
     const parser=new Parser(tokens);
     const ast=parser.parseProgram();
@@ -495,11 +758,33 @@
       : (browserSink || (typeof console !== 'undefined' && typeof console.log === 'function'
           ? line => console.log(line)
           : null));
-    const env={ vars:Object.create(null), inputs:[...(opts.inputs||[])], output: (line)=>{
-      if(callback) callback(String(line));
+    let prismaClient;
+    if(Object.prototype.hasOwnProperty.call(opts, 'prisma')){
+      prismaClient = opts.prisma;
+    } else {
+      if(!triedDefaultPrisma && typeof require === 'function'){
+        triedDefaultPrisma = true;
+        try {
+          const dbModule = require('./src/db');
+          defaultPrismaClient = dbModule && dbModule.prisma ? dbModule.prisma : null;
+        } catch(err){
+          defaultPrismaClient = null;
+        }
+      }
+      prismaClient = defaultPrismaClient;
+    }
+    const env={
+      vars:Object.create(null),
+      inputs:[...(opts.inputs||[])],
+      output:null,
+      prisma: prismaClient || null,
+      records: Object.create(null)
+    };
+    env.output=(line)=>{
+      if(callback) callback.call(env, String(line));
       outputs.push(String(line));
-    }};
-    for(const stmt of ast.body){ execStmt(stmt, env); }
+    };
+    for(const stmt of ast.body){ await execStmt(stmt, env); }
     return { output: outputs, env, ast };
   }
 
