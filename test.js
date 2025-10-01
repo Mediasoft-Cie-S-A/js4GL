@@ -1,4 +1,4 @@
-const { interpret4GL } = Mini4GL; // ou require('./mini4gl.js') en Node
+const { interpret4GL } = Mini4GL; // ou require('./mini4GL.js') en Node
 const program = `
   ASSIGN n = 3.
   DO WHILE n > 0:
