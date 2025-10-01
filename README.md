@@ -18,3 +18,14 @@ node test.js
 ```
 
 Le script lit un exemple de programme, l'exécute avec l'interpréteur et affiche les résultats dans la console.
+
+## Sauvegarder la base de démonstration
+
+L'intégration Prisma s'appuie sur une base SQLite (`prisma/dev.db`). Pour en réaliser une sauvegarde ponctuelle, assurez-vous d'abord d'avoir installé les dépendances du projet (`npm install`) puis exécutez :
+
+```bash
+mkdir -p backups
+sqlite3 prisma/dev.db ".backup 'backups/dev-$(date +%Y%m%d%H%M%S).db'"
+```
+
+La commande crée un répertoire `backups/` (s'il n'existe pas) et y stocke une copie horodatée de la base. Vous pouvez ensuite restaurer la sauvegarde souhaitée avec `sqlite3` si nécessaire.
