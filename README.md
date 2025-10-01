@@ -4,13 +4,18 @@ Mini interpréteur JavaScript pour un sous-ensemble du langage OpenEdge/Progress
 
 ## Tester dans le navigateur
 
-Une page de démonstration est disponible dans [`index.html`](./index.html). Ouvrez-la dans un navigateur web moderne (ou servez le dossier via `npx serve` / `python -m http.server`) pour profiter de :
+Une page de démonstration est disponible dans [`index.html`](./index.html). Ouvrez-la dans un navigateur web moderne (ou servez le dossier via `npm start`, `npx serve` ou `python -m http.server`) pour profiter de :
 
 - Un éditeur intégré avec un exemple de programme 4GL.
 - Un bouton **Run** pour exécuter le code et afficher la sortie en direct.
 - Un bouton **Save** pour télécharger le contenu courant de l'éditeur sous forme de fichier `.4gl`.
+- Un bouton **Générer les données** pour réinitialiser la base SQLite de démonstration via l'API `/api/seed` (servie par `npm start`).
 - Une sauvegarde automatique locale (LocalStorage) du dernier programme édité.
 
+
+```bash
+npm start
+```
 
 ```bash
 npx serve
