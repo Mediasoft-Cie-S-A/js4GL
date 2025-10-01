@@ -34,6 +34,40 @@ const tests = [
     verify: ({ output }) => {
       assert.deepStrictEqual(output, ['17/05/24', '17-05-2024', '2024-05-17']);
     }
+  },
+  {
+    name: 'RUN executes procedures with INPUT and OUTPUT parameters',
+    program: `
+      PROCEDURE calcDays:
+        DEFINE INPUT PARAMETER pStart AS INTEGER NO-UNDO.
+        DEFINE INPUT PARAMETER pEnd AS INTEGER NO-UNDO.
+        DEFINE OUTPUT PARAMETER pDays AS INTEGER NO-UNDO.
+
+        DEFINE VARIABLE current AS INTEGER NO-UNDO.
+        DEFINE VARIABLE count AS INTEGER NO-UNDO.
+
+        ASSIGN current = pStart
+               count = 0.
+
+        DO WHILE current < pEnd:
+          count = count + 1.
+          current = current + 1.
+        END.
+
+        ASSIGN pDays = count.
+      END PROCEDURE.
+
+      DEFINE VARIABLE startDay AS INTEGER INIT 1.
+      DEFINE VARIABLE endDay AS INTEGER INIT 5.
+      DEFINE VARIABLE totalDays AS INTEGER.
+
+      RUN calcDays (INPUT startDay, INPUT endDay, OUTPUT totalDays).
+      DISPLAY totalDays.
+    `,
+    verify: ({ output, env }) => {
+      assert.deepStrictEqual(output, ['4']);
+      assert.strictEqual(env.vars.totaldays, 4);
+    }
   }
 ];
 
