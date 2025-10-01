@@ -86,7 +86,6 @@ const customerSeedData = [
     ]
   }
 ];
-=======
 async function ensureDatabaseSchema(prisma) {
   const existingTables = await prisma.$queryRaw`SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('Customer', 'Order')`;
   const tableSet = new Set(existingTables.map((table) => table.name));
@@ -95,13 +94,21 @@ async function ensureDatabaseSchema(prisma) {
     await prisma.$executeRawUnsafe(`
       CREATE TABLE "Customer" (
         "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        "custNum" INTEGER NOT NULL,
         "name" TEXT NOT NULL,
-        "email" TEXT NOT NULL,
+        "contact" TEXT,
+        "phone" TEXT,
+        "address" TEXT,
+        "city" TEXT NOT NULL,
+        "state" TEXT NOT NULL DEFAULT 'NH',
+        "postalCode" TEXT,
+        "balance" REAL NOT NULL,
+        "creditLimit" REAL NOT NULL,
         "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
     `);
     await prisma.$executeRawUnsafe(
-      'CREATE UNIQUE INDEX IF NOT EXISTS "Customer_email_key" ON "Customer"("email");'
+      'CREATE UNIQUE INDEX IF NOT EXISTS "Customer_custNum_key" ON "Customer"("custNum");'
     );
   }
 
@@ -109,13 +116,19 @@ async function ensureDatabaseSchema(prisma) {
     await prisma.$executeRawUnsafe(`
       CREATE TABLE "Order" (
         "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        "orderNum" INTEGER NOT NULL,
         "total" REAL NOT NULL,
         "status" TEXT NOT NULL,
-        "placedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "orderDate" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "shipDate" DATETIME,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "customerId" INTEGER NOT NULL,
         CONSTRAINT "Order_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "Customer"("id") ON DELETE RESTRICT ON UPDATE CASCADE
       );
     `);
+    await prisma.$executeRawUnsafe(
+      'CREATE UNIQUE INDEX IF NOT EXISTS "Order_orderNum_key" ON "Order"("orderNum");'
+    );
     await prisma.$executeRawUnsafe(
       'CREATE INDEX IF NOT EXISTS "Order_customerId_idx" ON "Order"("customerId");'
     );
@@ -128,85 +141,12 @@ async function seedDatabase(existingClient) {
   const shouldDisconnect = !existingClient;
 
   try {
+    await ensureDatabaseSchema(prisma);
 
     await prisma.$transaction([
       prisma.order.deleteMany(),
       prisma.customer.deleteMany()
     ]);
-
-    await ensureDatabaseSchema(prisma);
-    await prisma.order.deleteMany();
-    await prisma.customer.deleteMany();
-
-
-    const customers = await Promise.all([
-      prisma.customer.create({
-        data: {
-          custNum: 'CUST-1001',
-          name: 'Alice Martin',
-          email: 'alice@example.com',
-          city: 'Paris',
-          state: 'IDF',
-          balance: 125.5,
-          creditLimit: 1000,
-          orders: {
-            create: [
-              {
-                orderNum: 'ORD-2001',
-                orderDate: new Date('2023-01-15T10:30:00Z'),
-                shipDate: new Date('2023-01-18T09:00:00Z'),
-                total: 125.5,
-                status: 'PROCESSING'
-              },
-              {
-                orderNum: 'ORD-2002',
-                orderDate: new Date('2023-02-02T14:00:00Z'),
-                shipDate: new Date('2023-02-05T08:45:00Z'),
-                total: 89.99,
-                status: 'SHIPPED'
-              }
-            ]
-          }
-        },
-        include: { orders: true }
-      }),
-      prisma.customer.create({
-        data: {
-          custNum: 'CUST-1002',
-          name: 'Bruno Keller',
-          email: 'bruno@example.com',
-          city: 'Lyon',
-          state: 'ARA',
-          balance: 45,
-          creditLimit: 750,
-          orders: {
-            create: [
-              {
-                orderNum: 'ORD-2003',
-                orderDate: new Date('2023-03-10T11:15:00Z'),
-                shipDate: null,
-                total: 45.0,
-                status: 'PENDING'
-              }
-            ]
-          }
-        },
-        include: { orders: true }
-      }),
-      prisma.customer.create({
-        data: {
-          custNum: 'CUST-1003',
-          name: 'Carla Dupont',
-          email: 'carla@example.com',
-          city: 'Marseille',
-          state: 'PACA',
-          balance: 0,
-          creditLimit: 500
-        },
-        include: { orders: true }
-      })
-    ]);
-=======
 
     const createdCustomers = [];
 
