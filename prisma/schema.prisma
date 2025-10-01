@@ -8,6 +8,7 @@ generator client {
 }
 
 model Customer {
+
   id        Int      @id @default(autoincrement())
   custNum   String   @unique
   name      String
@@ -25,9 +26,17 @@ model Order {
   orderNum   String   @unique
   orderDate  DateTime @default(now())
   shipDate   DateTime?
-  total      Float
-  status     String
-  placedAt   DateTime @default(now())
-  customer   Customer @relation(fields: [customerId], references: [id])
-  customerId Int
+  custNum     Int      @unique
+  name        String
+  contact     String?
+  phone       String?
+  address     String?
+  city        String
+  state       String   @default("NH")
+  postalCode  String?
+  balance     Float
+  creditLimit Float
+  createdAt   DateTime @default(now())
+  orders      Order[]
 }
+
