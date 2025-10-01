@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mini 4GL Playground</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap" />
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: "Fira Code", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        grid-template-rows: auto 1fr;
+        background: var(--bg, #1e1e1e);
+        color: var(--fg, #f0f0f0);
+      }
+      header {
+        padding: 1rem 1.5rem;
+        background: #282c34;
+        color: #fff;
+      }
+      main {
+        display: grid;
+        grid-template-columns: 1fr minmax(280px, 35%);
+        gap: 1.25rem;
+        padding: 1.5rem;
+      }
+      @media (max-width: 960px) {
+        main {
+          grid-template-columns: 1fr;
+        }
+      }
+      textarea {
+        width: 100%;
+        height: 100%;
+        min-height: 420px;
+        resize: vertical;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(30, 30, 30, 0.9);
+        color: inherit;
+        padding: 1rem;
+        line-height: 1.5;
+        font-family: inherit;
+        font-size: 0.95rem;
+      }
+      textarea:focus {
+        outline: 2px solid #61dafb;
+      }
+      .panel {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: center;
+      }
+      button {
+        border: none;
+        border-radius: 6px;
+        padding: 0.6rem 1.2rem;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        color: #fff;
+        background: #2d9cdb;
+        transition: transform 0.15s ease, background 0.2s ease;
+      }
+      button:hover {
+        background: #2386bb;
+        transform: translateY(-1px);
+      }
+      button.secondary {
+        background: #6c757d;
+      }
+      button.secondary:hover {
+        background: #5a636a;
+      }
+      input[type="text"] {
+        padding: 0.55rem 0.75rem;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(30, 30, 30, 0.9);
+        color: inherit;
+        font-family: inherit;
+        min-width: 180px;
+      }
+      pre {
+        background: rgba(0, 0, 0, 0.55);
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 0;
+        min-height: 200px;
+        overflow: auto;
+        font-size: 0.95rem;
+      }
+      .status {
+        font-size: 0.9rem;
+        min-height: 1.2rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Mini 4GL Playground</h1>
+      <p>Testez votre code OpenEdge/Progress 4GL directement dans le navigateur.</p>
+    </header>
+    <main>
+      <section class="panel">
+        <div class="controls">
+          <button id="run">Run</button>
+          <button id="save" class="secondary">Save</button>
+          <label>
+            Nom du fichier
+            <input type="text" id="filename" value="programme.4gl" />
+          </label>
+        </div>
+        <textarea id="editor" spellcheck="false"></textarea>
+      </section>
+      <section class="panel">
+        <div>
+          <h2>Sortie</h2>
+          <pre id="output"></pre>
+        </div>
+        <div>
+          <h2>Statut</h2>
+          <div id="status" class="status"></div>
+        </div>
+      </section>
+    </main>
+
+    <script src="mini4GL.js"></script>
+    <script>
+      const editor = document.getElementById('editor');
+      const runBtn = document.getElementById('run');
+      const saveBtn = document.getElementById('save');
+      const outputEl = document.getElementById('output');
+      const statusEl = document.getElementById('status');
+      const filenameInput = document.getElementById('filename');
+      const storageKey = 'mini4gl-playground-source';
+
+      const defaultProgram = `/* Exemple : table de multiplication */\nASSIGN n = 5.\nASSIGN i = 1.\nDO WHILE i <= 10:\n  DISPLAY i, "x", n, "=", i * n.\n  i = i + 1.\nEND.\nDISPLAY "Terminé.".`;
+
+      try {
+        const saved = localStorage.getItem(storageKey);
+        editor.value = saved ?? defaultProgram;
+      } catch (err) {
+        console.warn('Impossible de charger depuis le stockage local', err);
+        editor.value = defaultProgram;
+      }
+
+      editor.addEventListener('input', () => {
+        try {
+          localStorage.setItem(storageKey, editor.value);
+        } catch (err) {
+          // storage may be disabled
+        }
+      });
+
+      function clearOutput() {
+        outputEl.textContent = '';
+      }
+
+      function appendOutput(line) {
+        outputEl.textContent += line + '\n';
+      }
+
+      function setStatus(message, isError = false) {
+        statusEl.textContent = message;
+        statusEl.style.color = isError ? '#ff7373' : '#8be9fd';
+      }
+
+      runBtn.addEventListener('click', () => {
+        clearOutput();
+        setStatus('Exécution...');
+        const source = editor.value;
+        try {
+          const start = performance.now();
+          const result = Mini4GL.interpret4GL(source, {
+            onOutput: appendOutput,
+          });
+          const duration = (performance.now() - start).toFixed(2);
+          setStatus(`Exécution terminée en ${duration} ms. ${result.output.length} ligne(s) affichée(s).`);
+        } catch (err) {
+          console.error(err);
+          setStatus(err.message, true);
+        }
+      });
+
+      saveBtn.addEventListener('click', () => {
+        const blob = new Blob([editor.value], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filenameInput.value.trim() || 'programme.4gl';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        setStatus('Programme téléchargé.', false);
+      });
+    </script>
+  </body>
+</html>

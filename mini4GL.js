@@ -158,7 +158,8 @@
     // supports: ASSIGN x = expr . | x = expr .
     if(this.match('ASSIGN')){ /* fallthrough to identifier */ }
     const id=this.eat('IDENT').value;
-    this.expectOp('=');
+    const assignTok=this.eat('OP');
+    if(assignTok.value !== '=') throw new SyntaxError(`Expected '=' but got ${assignTok.value}`);
     const value=this.parseExpr();
     this.optionalDot();
     return { type:'Assign', id: id.toLowerCase(), value };
