@@ -117,6 +117,7 @@
         <div class="controls">
           <button id="run">Run</button>
           <button id="save" class="secondary">Save</button>
+          <button id="seed" class="secondary">Générer les données</button>
           <label>
             Nom du fichier
             <input type="text" id="filename" value="programme.4gl" />
@@ -141,6 +142,7 @@
       const editor = document.getElementById('editor');
       const runBtn = document.getElementById('run');
       const saveBtn = document.getElementById('save');
+      const seedBtn = document.getElementById('seed');
       const outputEl = document.getElementById('output');
       const statusEl = document.getElementById('status');
       const filenameInput = document.getElementById('filename');
@@ -206,6 +208,27 @@
         URL.revokeObjectURL(url);
         setStatus('Programme téléchargé.', false);
       });
+
+      if (seedBtn) {
+        seedBtn.addEventListener('click', async () => {
+          setStatus('Génération des données de démonstration...');
+          try {
+            const response = await fetch('/api/seed', { method: 'POST' });
+            if (!response.ok) {
+              throw new Error(`Requête échouée (${response.status})`);
+            }
+            const payload = await response.json();
+            if (payload.status !== 'ok') {
+              throw new Error(payload.message || 'Erreur lors de la génération des données.');
+            }
+            const details = `${payload.customers} client(s), ${payload.orders} commande(s)`;
+            setStatus(`Base de démonstration régénérée (${details}).`);
+          } catch (err) {
+            console.error(err);
+            setStatus(err.message || 'Impossible de générer les données.', true);
+          }
+        });
+      }
     </script>
   </body>
 </html>
