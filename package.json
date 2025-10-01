@@ -1,0 +1,15 @@
+{
+  "name": "js4gl",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "seed": "node prisma/seed.js"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.16.1"
+  },
+  "devDependencies": {
+    "prisma": "^5.16.1"
+  }
+}
