@@ -11,6 +11,16 @@ Une page de démonstration est disponible dans [`index.html`](./index.html). Ouv
 - Un bouton **Save** pour télécharger le contenu courant de l'éditeur sous forme de fichier `.4gl`.
 - Une sauvegarde automatique locale (LocalStorage) du dernier programme édité.
 
+
+```bash
+npx serve
+```
+
+```bash
+python -m http.server
+```
+
+
 ## Utilisation Node.js
 
 ```bash
