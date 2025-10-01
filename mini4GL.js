@@ -50,7 +50,8 @@
 
 (function (global) {
   const KEYWORDS = new Set([
-    'ASSIGN','DISPLAY','PRINT','INPUT','IF','THEN','ELSE','END','DO','WHILE','REPEAT','LEAVE','NEXT','AND','OR','NOT','FOR','EACH','WHERE','BY','OF'
+    'ASSIGN','DISPLAY','PRINT','INPUT','IF','THEN','ELSE','END','DO','WHILE','REPEAT','LEAVE','NEXT','AND','OR','NOT','FOR','EACH','WHERE','BY','OF',
+    'DEFINE','VARIABLE','AS','NO','UNDO','INIT','LABEL','FORMAT','WITH','CENTERED'
   ]);
 
   let defaultPrismaClient;
@@ -95,8 +96,14 @@
         let start=i; i++;
         while(i<n && isAlnum(src[i])) i++;
         const raw=src.slice(start,i); const upper=raw.toUpperCase();
-        if(KEYWORDS.has(upper)) push(upper, upper);
-        else push('IDENT', raw);
+        const opKeywordMap={ NE:'<>', EQ:'=', GE:'>=', LE:'<=' };
+        if(Object.prototype.hasOwnProperty.call(opKeywordMap, upper)){
+          push('OP', opKeywordMap[upper]);
+        } else if(KEYWORDS.has(upper)){
+          push(upper, upper);
+        } else {
+          push('IDENT', raw);
+        }
         continue;
       }
       // two-char operators
@@ -142,6 +149,7 @@
     switch(t.type){
       case 'ASSIGN':
       case 'IDENT': return this.parseAssignLike();
+      case 'DEFINE': return this.parseDefineVariable();
       case 'DISPLAY':
       case 'PRINT': return this.parseDisplay();
       case 'INPUT': return this.parseInput();
@@ -169,12 +177,82 @@
     return { type:'Assign', id: id.toLowerCase(), value };
   };
 
+  Parser.prototype.parseDefineVariable=function(){
+    this.eat('DEFINE');
+    this.eat('VARIABLE');
+    const id=this.eat('IDENT').value;
+    let dataType=null;
+    if(this.match('AS')){
+      const typeTok=this.peek();
+      if(typeTok.type==='IDENT'){ dataType=this.eat('IDENT').value.toUpperCase(); }
+      else { dataType=this.eat(typeTok.type).value || typeTok.type; dataType=String(dataType).toUpperCase(); }
+    }
+    let init=null;
+    let noUndo=false;
+    while(true){
+      const next=this.peek();
+      if(next.type==='INIT'){
+        this.eat('INIT');
+        if(this.peek().type==='OP' && this.peek().value==='=') this.eat('OP');
+        init=this.parseExpr();
+        continue;
+      }
+      if(next.type==='NO'){
+        this.eat('NO');
+        if(this.peek().type==='OP' && this.peek().value==='-') this.eat('OP');
+        const undoTok=this.peek();
+        if(undoTok.type==='UNDO' || (undoTok.type==='IDENT' && undoTok.value.toUpperCase()==='UNDO')){
+          this.eat(undoTok.type);
+        }
+        noUndo=true;
+        continue;
+      }
+      break;
+    }
+    this.optionalDot();
+    return { type:'DefineVariable', id:id.toLowerCase(), dataType, init, noUndo };
+  };
+
   Parser.prototype.parseDisplay=function(){
     this.eat(this.peek().type); // DISPLAY or PRINT
-    const items=[this.parseExpr()];
-    while(this.match('COMMA')) items.push(this.parseExpr());
+    const items=[];
+    while(true){
+      const expr=this.parseExpr();
+      const meta={ expr };
+      while(true){
+        const next=this.peek();
+        if(next.type==='LABEL'){
+          this.eat('LABEL');
+          meta.label=this.parseExpr();
+          continue;
+        }
+        if(next.type==='FORMAT'){
+          this.eat('FORMAT');
+          meta.format=this.parseExpr();
+          continue;
+        }
+        break;
+      }
+      items.push(meta);
+      if(!this.match('COMMA')) break;
+    }
+    const withOptions=[];
+    if(this.match('WITH')){
+      while(true){
+        const next=this.peek();
+        if(next.type==='CENTERED'){
+          this.eat('CENTERED');
+          withOptions.push('CENTERED');
+        } else if(next.type==='IDENT'){
+          withOptions.push(this.eat('IDENT').value.toUpperCase());
+        } else {
+          break;
+        }
+        if(!this.match('COMMA')) break;
+      }
+    }
     this.optionalDot();
-    return { type:'Display', items };
+    return { type:'Display', items, withOptions };
   };
 
   Parser.prototype.parseInput=function(){
@@ -391,6 +469,54 @@
     throw new Error('Bad compare op '+op);
   }
 
+  function initialValueForType(dataType){
+    if(!dataType) return null;
+    const upper=String(dataType).toUpperCase();
+    if(['INTEGER','INT','DECIMAL','NUMERIC','FLOAT','DOUBLE'].includes(upper)) return 0;
+    if(['LOGICAL','BOOLEAN'].includes(upper)) return false;
+    if(['CHAR','CHARACTER','STRING'].includes(upper)) return '';
+    return null;
+  }
+
+  function formatDisplayValue(value, formatSpec){
+    const raw=value==null ? '' : String(value);
+    if(formatSpec==null) return raw;
+    const spec=String(formatSpec);
+    const explicitWidth=spec.match(/^([xX9#])\((\d+)\)$/);
+    if(explicitWidth){
+      const width=parseInt(explicitWidth[2],10);
+      const align = explicitWidth[1].toUpperCase()==='X' ? 'left' : 'right';
+      if(align==='left'){
+        return raw.length>width ? raw.slice(0,width) : raw.padEnd(width,' ');
+      }
+      return raw.length>width ? raw.slice(-width) : raw.padStart(width,' ');
+    }
+    if(/&+/.test(spec)){
+      let cursor=0;
+      return spec.replace(/&+/g, match => {
+        const width=match.length;
+        const slice=raw.slice(cursor, cursor+width);
+        cursor+=width;
+        return slice.length>=width ? slice : slice.padEnd(width,' ');
+      });
+    }
+    if(/[>9#]/.test(spec)){
+      const width = (spec.match(/[>9#]/g) || []).length;
+      if(width){
+        const truncated = raw.length>width ? raw.slice(-width) : raw;
+        return truncated.padStart(width,' ');
+      }
+    }
+    return raw;
+  }
+
+  function centerLine(text, width=80){
+    const line=String(text ?? '');
+    if(line.length>=width) return line;
+    const pad=Math.floor((width-line.length)/2);
+    return ' '.repeat(pad)+line;
+  }
+
   function lowerFirst(str){ return str ? str.charAt(0).toLowerCase() + str.slice(1) : str; }
   function normalizeFieldSegment(seg){ return lowerFirst(seg); }
 
@@ -603,9 +729,31 @@
     switch(node.type){
       case 'Empty': return;
       case 'Assign': env.vars[node.id]=evalExpr(node.value,env); return;
+      case 'DefineVariable':{
+        const value = node.init ? evalExpr(node.init, env) : initialValueForType(node.dataType);
+        env.vars[node.id]=value;
+        if(env.varDefs) env.varDefs[node.id]={ dataType: node.dataType, noUndo: node.noUndo };
+        return;
+      }
       case 'Display':{
-        const parts=node.items.map(e=>evalExpr(e,env));
-        env.output(parts.join(' ')); return;
+        const parts=node.items.map(item=>{
+          const value=evalExpr(item.expr, env);
+          const formatted=formatDisplayValue(value, item.format ? evalExpr(item.format, env) : null);
+          if(item.label){
+            const labelVal=evalExpr(item.label, env);
+            const labelStr=labelVal==null? '' : String(labelVal);
+            if(labelStr.length){
+              return `${labelStr} ${formatted}`.trim();
+            }
+          }
+          return formatted;
+        });
+        let line=parts.join(' ');
+        if(node.withOptions && node.withOptions.some(opt=>String(opt).toUpperCase()==='CENTERED')){
+          line=centerLine(line);
+        }
+        env.output(line);
+        return;
       }
       case 'Input':{
         const val = env.inputs.length? env.inputs.shift() : null;
@@ -775,6 +923,7 @@
     }
     const env={
       vars:Object.create(null),
+      varDefs:Object.create(null),
       inputs:[...(opts.inputs||[])],
       output:null,
       prisma: prismaClient || null,
