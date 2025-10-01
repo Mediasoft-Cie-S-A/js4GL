@@ -478,10 +478,123 @@
     return null;
   }
 
+  function normalizeTwoDigitYear(year){
+    if(year>=100) return year;
+    return year>=70 ? 1900+year : 2000+year;
+  }
+
+  function buildUTCDate(year, month, day){
+    const date=new Date(Date.UTC(year, month-1, day));
+    if(date.getUTCFullYear()!==year || date.getUTCMonth()!==month-1 || date.getUTCDate()!==day){
+      return null;
+    }
+    return date;
+  }
+
+  function parse4GLDate(value){
+    if(value==null) return null;
+    if(value instanceof Date){
+      return isNaN(value.getTime()) ? null : new Date(value.getTime());
+    }
+    if(typeof value==='number' && Number.isFinite(value)){
+      const date=new Date(value);
+      return isNaN(date.getTime()) ? null : date;
+    }
+    if(typeof value!=='string') return null;
+    const trimmed=value.trim();
+    if(!trimmed) return null;
+
+    const isoMatch=trimmed.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s].*)?$/);
+    if(isoMatch){
+      const year=parseInt(isoMatch[1],10);
+      const month=parseInt(isoMatch[2],10);
+      const day=parseInt(isoMatch[3],10);
+      return buildUTCDate(year, month, day);
+    }
+
+    const genericMatch=trimmed.match(/^(\d{1,4})[/-](\d{1,2})[/-](\d{1,4})$/);
+    if(genericMatch){
+      let first=parseInt(genericMatch[1],10);
+      let second=parseInt(genericMatch[2],10);
+      let third=parseInt(genericMatch[3],10);
+
+      let year, month, day;
+      if(first>31){
+        year=first;
+        month=second;
+        day=third;
+      } else if(third>31){
+        day=first;
+        month=second;
+        year=third;
+      } else {
+        day=first;
+        month=second;
+        year=third;
+      }
+
+      if(year<100) year=normalizeTwoDigitYear(year);
+      if(month<1 || month>12) return null;
+      if(day<1 || day>31) return null;
+      return buildUTCDate(year, month, day);
+    }
+
+    const parsed=new Date(trimmed);
+    return isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  function isDateFormatSpec(spec){
+    if(typeof spec!=='string') return false;
+    const trimmed=spec.trim();
+    return /^9{2,4}[^0-9]9{2}[^0-9]9{2,4}$/.test(trimmed);
+  }
+
+  function formatDateComponent(value, length){
+    const str=String(Math.abs(value)).padStart(length,'0');
+    return str.slice(-length);
+  }
+
+  function formatDateWithPattern(date, pattern){
+    if(!(date instanceof Date) || isNaN(date.getTime())) return '';
+    const spec=String(pattern);
+    const parts=spec.split(/[^0-9]+/).filter(Boolean);
+    const seps=spec.match(/[^0-9]+/g) || [];
+    if(parts.length<3) return date.toISOString().slice(0,10);
+    const day=date.getUTCDate();
+    const month=date.getUTCMonth()+1;
+    const year=date.getUTCFullYear();
+    const segments=[];
+
+    if(parts[0].length===4){
+      segments.push(formatDateComponent(year, parts[0].length));
+      segments.push(formatDateComponent(month, parts[1].length));
+      segments.push(formatDateComponent(day, parts[2].length));
+    } else if(parts[2].length===4){
+      segments.push(formatDateComponent(day, parts[0].length));
+      segments.push(formatDateComponent(month, parts[1].length));
+      segments.push(formatDateComponent(year, parts[2].length));
+    } else {
+      segments.push(formatDateComponent(day, parts[0].length));
+      segments.push(formatDateComponent(month, parts[1].length));
+      segments.push(formatDateComponent(year, parts[2].length));
+    }
+
+    let formatted='';
+    for(let i=0;i<segments.length;i++){
+      if(i>0) formatted+=seps[i-1] || '';
+      formatted+=segments[i];
+    }
+    return formatted;
+  }
+
   function formatDisplayValue(value, formatSpec){
     const raw=value==null ? '' : String(value);
     if(formatSpec==null) return raw;
     const spec=String(formatSpec);
+    if(isDateFormatSpec(spec)){
+      const date=parse4GLDate(value);
+      if(date) return formatDateWithPattern(date, spec);
+    }
     const explicitWidth=spec.match(/^([xX9#])\((\d+)\)$/);
     if(explicitWidth){
       const width=parseInt(explicitWidth[2],10);
@@ -715,6 +828,22 @@
           case 'LENGTH': return String(args[0]??'').length;
           case 'INT': return parseInt(args[0]??0,10);
           case 'FLOAT': return parseFloat(args[0]??0);
+          case 'MONTH':{
+            const date=parse4GLDate(args[0]);
+            return date ? date.getUTCMonth()+1 : null;
+          }
+          case 'ENTRY':{
+            const indexRaw=args[0];
+            const listValue=args[1];
+            const delimiterArg=args.length>=3 ? args[2] : null;
+            const idx=Math.trunc(Number(indexRaw));
+            if(!Number.isFinite(idx) || idx<1) return '';
+            const delimiter = delimiterArg==null || delimiterArg=== '' ? ',' : String(delimiterArg);
+            const listString=String(listValue ?? '');
+            const entries=listString.length ? listString.split(delimiter) : [''];
+            const entry=entries[idx-1];
+            return typeof entry==='undefined' ? '' : String(entry).trim();
+          }
           case 'PRINT': // allow PRINT() function-style
             env.output(String(args.map(String).join(' '))); return null;
           default:
