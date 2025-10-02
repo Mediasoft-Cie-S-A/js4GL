@@ -17,7 +17,7 @@ async function executeWhile(node, env, context) {
   }
 }
 
-const exported = {
+const whileStatement = {
   keywords: ['WHILE'],
   parse: parseWhile,
   executors: {
@@ -26,7 +26,7 @@ const exported = {
 };
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = exported;
+  module.exports = whileStatement;
 } else {
   const globalScope =
     typeof globalThis !== 'undefined'
@@ -37,5 +37,5 @@ if (typeof module !== 'undefined' && module.exports) {
           ? global
           : {};
   globalScope.Mini4GLStatementModules = globalScope.Mini4GLStatementModules || [];
-  globalScope.Mini4GLStatementModules.push(exported);
+  globalScope.Mini4GLStatementModules.push(whileStatement);
 }

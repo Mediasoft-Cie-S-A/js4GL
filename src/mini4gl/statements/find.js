@@ -72,7 +72,7 @@ async function executeFind(node, env, context) {
   env.vars[targetLower] = record;
 }
 
-const exported = {
+const findStatement = {
   keywords: ['FIND'],
   parse: parseFind,
   executors: {
@@ -81,7 +81,7 @@ const exported = {
 };
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = exported;
+  module.exports = findStatement;
 } else {
   const globalScope =
     typeof globalThis !== 'undefined'
@@ -92,5 +92,5 @@ if (typeof module !== 'undefined' && module.exports) {
           ? global
           : {};
   globalScope.Mini4GLStatementModules = globalScope.Mini4GLStatementModules || [];
-  globalScope.Mini4GLStatementModules.push(exported);
+  globalScope.Mini4GLStatementModules.push(findStatement);
 }

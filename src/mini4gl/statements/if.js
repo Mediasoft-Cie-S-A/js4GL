@@ -20,7 +20,7 @@ async function executeIf(node, env, context) {
   }
 }
 
-const exported = {
+const ifStatement = {
   keywords: ['IF'],
   parse: parseIf,
   executors: {
@@ -29,7 +29,7 @@ const exported = {
 };
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = exported;
+  module.exports = ifStatement;
 } else {
   const globalScope =
     typeof globalThis !== 'undefined'
@@ -40,5 +40,5 @@ if (typeof module !== 'undefined' && module.exports) {
           ? global
           : {};
   globalScope.Mini4GLStatementModules = globalScope.Mini4GLStatementModules || [];
-  globalScope.Mini4GLStatementModules.push(exported);
+  globalScope.Mini4GLStatementModules.push(ifStatement);
 }

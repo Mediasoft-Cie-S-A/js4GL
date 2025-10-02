@@ -12,7 +12,7 @@ function executeInput(node, env, context) {
   context.setVar(env, node.id, value);
 }
 
-const exported = {
+const inputStatement = {
   keywords: ['INPUT'],
   parse: parseInput,
   executors: {
@@ -21,7 +21,7 @@ const exported = {
 };
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = exported;
+  module.exports = inputStatement;
 } else {
   const globalScope =
     typeof globalThis !== 'undefined'
@@ -32,5 +32,5 @@ if (typeof module !== 'undefined' && module.exports) {
           ? global
           : {};
   globalScope.Mini4GLStatementModules = globalScope.Mini4GLStatementModules || [];
-  globalScope.Mini4GLStatementModules.push(exported);
+  globalScope.Mini4GLStatementModules.push(inputStatement);
 }
