@@ -93,6 +93,7 @@
   ]);
 
   let defaultPrismaClient;
+  let defaultPrismaEnsureReady;
   let triedDefaultPrisma = false;
 
   function isAlpha(ch){return /[A-Za-z_]/.test(ch);} 
@@ -1327,12 +1328,21 @@
         try {
           const dbModule = require('./src/db');
           defaultPrismaClient = dbModule && dbModule.prisma ? dbModule.prisma : null;
+          defaultPrismaEnsureReady = dbModule && typeof dbModule.ensurePrismaReady === 'function'
+            ? () => dbModule.ensurePrismaReady()
+            : null;
         } catch(err){
           defaultPrismaClient = null;
+          defaultPrismaEnsureReady = null;
         }
       }
       prismaClient = defaultPrismaClient;
     }
+    const prismaReadyPromise = opts.prismaReady
+      ? opts.prismaReady
+      : (prismaClient && defaultPrismaClient && prismaClient===defaultPrismaClient && defaultPrismaEnsureReady
+        ? defaultPrismaEnsureReady()
+        : null);
     const env={
       vars:Object.create(null),
       varDefs:Object.create(null),
@@ -1347,6 +1357,9 @@
       if(callback) callback.call(env, String(line));
       outputs.push(String(line));
     };
+    if(prismaReadyPromise){
+      await prismaReadyPromise;
+    }
     for(const stmt of ast.body){ await execStmt(stmt, env); }
     return { output: outputs, env, ast };
   }

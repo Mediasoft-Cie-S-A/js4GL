@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('path');
 const { interpret4GL } = require('../mini4GL.js');
-const { prisma } = require('./db');
+const { prisma, ensurePrismaReady } = require('./db');
 const { seedDatabase } = require('./seedDatabase');
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
@@ -29,9 +29,12 @@ app.post('/api/run', async (req, res) => {
   const sanitizedInputs = Array.isArray(inputs) ? inputs.slice(0, 64) : [];
 
   try {
+    const prismaReadyPromise = ensurePrismaReady();
+    await prismaReadyPromise;
     const result = await interpret4GL(source, {
       prisma,
-      inputs: sanitizedInputs
+      inputs: sanitizedInputs,
+      prismaReady: prismaReadyPromise
     });
     res.json({ status: 'ok', output: result.output });
   } catch (error) {
