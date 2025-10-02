@@ -843,14 +843,20 @@
   function getDmmf(env){
     const prisma=env && env.prisma;
     if(!prisma) return null;
-    const dmmf=prisma._dmmf;
-    if(dmmf && dmmf.modelMap) return dmmf;
+    const legacyDmmf=prisma._dmmf;
+    if(legacyDmmf && legacyDmmf.modelMap) return legacyDmmf;
+    const runtimeModel=prisma._runtimeDataModel;
+    if(runtimeModel && runtimeModel.models) return runtimeModel;
     return null;
   }
 
   function getModelByName(dmmf, modelName){
     if(!dmmf || !modelName) return null;
     if(dmmf.modelMap && dmmf.modelMap[modelName]) return dmmf.modelMap[modelName];
+    if(dmmf.models && dmmf.models[modelName]){
+      const model=dmmf.models[modelName];
+      return { ...model, name: model.name || modelName };
+    }
     if(Array.isArray(dmmf.datamodel?.models)){
       return dmmf.datamodel.models.find(m=>m.name===modelName) || null;
     }
