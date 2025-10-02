@@ -179,20 +179,82 @@
         statusEl.style.color = isError ? '#ff7373' : '#8be9fd';
       }
 
+      async function executeLocally(source) {
+        const collected = [];
+        const result = await Mini4GL.interpret4GL(source, {
+          onOutput: (line) => {
+            collected.push(String(line));
+          }
+        });
+        return collected.length ? collected : result.output || [];
+      }
+
+      async function executeRemotely(source) {
+        const response = await fetch('/api/run', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ source })
+        });
+        if (!response.ok) {
+          let message = `Requête échouée (${response.status})`;
+          try {
+            const payload = await response.json();
+            if (payload?.message) {
+              message = payload.message;
+            }
+          } catch (_) {
+            // ignore JSON parsing errors
+          }
+          throw new Error(message);
+        }
+        const payload = await response.json();
+        if (payload?.status !== 'ok') {
+          throw new Error(payload?.message || "Impossible d'exécuter le programme.");
+        }
+        return Array.isArray(payload.output) ? payload.output : [];
+      }
+
+      function shouldFallbackToRemote(err) {
+        if (!err || typeof fetch !== 'function') {
+          return false;
+        }
+        const message = String(err.message || '').toLowerCase();
+        return message.includes('prisma');
+      }
+
       runBtn.addEventListener('click', async () => {
         clearOutput();
         setStatus('Exécution...');
         const source = editor.value;
+        const start = performance.now();
+
         try {
-          const start = performance.now();
-          const result = await Mini4GL.interpret4GL(source, {
-            onOutput: appendOutput,
-          });
+          let lines = [];
+          const canRunLocally =
+            typeof Mini4GL !== 'undefined' &&
+            Mini4GL &&
+            typeof Mini4GL.interpret4GL === 'function';
+
+          if (canRunLocally) {
+            try {
+              lines = await executeLocally(source);
+            } catch (err) {
+              if (shouldFallbackToRemote(err)) {
+                lines = await executeRemotely(source);
+              } else {
+                throw err;
+              }
+            }
+          } else {
+            lines = await executeRemotely(source);
+          }
+
+          lines.forEach(appendOutput);
           const duration = (performance.now() - start).toFixed(2);
-          setStatus(`Exécution terminée en ${duration} ms. ${result.output.length} ligne(s) affichée(s).`);
+          setStatus(`Exécution terminée en ${duration} ms. ${lines.length} ligne(s) affichée(s).`);
         } catch (err) {
           console.error(err);
-          setStatus(err.message, true);
+          setStatus(err.message || "Erreur lors de l'exécution du programme.", true);
         }
       });
 
