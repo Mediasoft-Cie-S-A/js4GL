@@ -276,5 +276,6 @@ async function seedDatabase(existingClient) {
 }
 
 module.exports = {
-  seedDatabase
+  seedDatabase,
+  ensureDatabaseSchema
 };
