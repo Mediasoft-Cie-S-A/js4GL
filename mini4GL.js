@@ -24,7 +24,7 @@
   - FIND ... : fetches a single Prisma record (supports FIRST, WHERE, OF, NO-ERROR).
   - Expressions: + - * /, parentheses, comparisons (=, <>, <, <=, >, >=), logical AND/OR/NOT
   - Strings with double quotes, numbers (int/float).
-  - Builtins: UPPER(s), LOWER(s), LENGTH(s), INT(n), FLOAT(n), STRING(v[, format]), PRINT(...) alias of DISPLAY
+   - Builtins: UPPER(s), LOWER(s), LENGTH(s), INT(n), INTEGER(n), FLOAT(n), STRING(v[, format]), PRINT(...) alias of DISPLAY
 
   Not implemented (you can extend): database buffers, TRANSACTION, temp-tables, advanced locking hints, triggers, frames.
 
@@ -487,61 +487,84 @@
     return isNaN(parsed.getTime()) ? null : parsed;
   }
 
-  function toJulianDayNumber(date){
-    if(!(date instanceof Date) || isNaN(date.getTime())) return null;
-    const day=date.getUTCDate();
-    const month=date.getUTCMonth()+1;
-    const year=date.getUTCFullYear();
-    const a=Math.floor((14-month)/12);
-    const y=year+4800-a;
-    const m=month+12*a-3;
-    return day + Math.floor((153*m+2)/5) + 365*y + Math.floor(y/4) - Math.floor(y/100) + Math.floor(y/400) - 32045;
+  const INT32_MIN=-2147483648;
+  const INT32_MAX=2147483647;
+  const JULIAN_DAY_BASE_MS=Date.UTC(-4712,0,1);
+
+  function roundHalfAwayFromZero(value){
+    if(!Number.isFinite(value)) return value;
+    if(value===0) return 0;
+    return value>0
+      ? Math.floor(value+0.5)
+      : Math.ceil(value-0.5);
   }
 
-  function decimalValueOf(value){
-    if(value==null) return null;
-    if(typeof value==='number'){
-      const num=Number(value);
-      return Number.isFinite(num) ? num : null;
+  function clampToInt32(value){
+    if(!Number.isFinite(value)){
+      throw new Error('INTEGER() argument is not a finite number');
     }
+    const truncated=Math.trunc(value);
+    if(truncated<INT32_MIN || truncated>INT32_MAX){
+      throw new Error('INTEGER() result is out of range for 32-bit INTEGER');
+    }
+    return truncated;
+  }
+
+  const numericPattern=/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/;
+
+  function toIntegerValue(value){
+    if(value==null) return null;
+
+    if(typeof value==='number'){
+      if(!Number.isFinite(value)){
+        throw new Error('INTEGER() argument is not a finite number');
+      }
+      const rounded=roundHalfAwayFromZero(value);
+      return clampToInt32(rounded);
+    }
+
     if(typeof value==='boolean'){
       return value ? 1 : 0;
     }
-    if(typeof value==='bigint'){
-      const num=Number(value);
-      if(!Number.isFinite(num)){
-        throw new Error('DECIMAL() cannot represent bigint value');
-      }
-      return num;
-    }
-    if(value instanceof Date){
-      const julian=toJulianDayNumber(value);
-      return julian==null ? null : julian;
-    }
+
     if(typeof value==='string'){
       const trimmed=value.trim();
-      if(!trimmed) return 0;
-      const normalized=trimmed.replace(/,/g,'');
-      if(!/^[-+]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(normalized)){
-        throw new Error(`DECIMAL() cannot convert '${value}' to a decimal`);
+      if(!numericPattern.test(trimmed)){
+        throw new Error(`INTEGER() cannot convert "${value}" to a number`);
       }
-      const num=Number(normalized);
-      if(!Number.isFinite(num)){
-        throw new Error(`DECIMAL() cannot convert '${value}' to a decimal`);
+      const numericValue=Number(trimmed);
+      if(!Number.isFinite(numericValue)){
+        throw new Error('INTEGER() argument is not a finite number');
       }
-      return num;
+      const rounded=roundHalfAwayFromZero(numericValue);
+      return clampToInt32(rounded);
     }
-    if(value && typeof value.valueOf==='function'){
-      const primitive=value.valueOf();
-      if(primitive!==value) return decimalValueOf(primitive);
-    }
-    if(value && typeof value.toString==='function'){
-      const stringValue=value.toString();
-      if(stringValue && stringValue!== '[object Object]'){
-        return decimalValueOf(stringValue);
+
+    if(typeof value==='bigint'){
+      const numericValue=Number(value);
+      if(!Number.isFinite(numericValue)){
+        throw new Error('INTEGER() argument is out of range');
       }
+      const rounded=roundHalfAwayFromZero(numericValue);
+      return clampToInt32(rounded);
     }
-    throw new Error('DECIMAL() cannot convert provided value to a decimal');
+
+    if(value instanceof Date){
+      if(isNaN(value.getTime())) return null;
+      const utcMs=Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate());
+      const days=Math.floor((utcMs-JULIAN_DAY_BASE_MS)/86400000);
+      return clampToInt32(days);
+    }
+
+    if(value && typeof value.valueOf==='function' && value.valueOf()!==value){
+      return toIntegerValue(value.valueOf());
+    }
+
+    if(value && typeof value.__mini4glObjectId==='number'){
+      return clampToInt32(roundHalfAwayFromZero(value.__mini4glObjectId));
+    }
+
+    throw new Error('INTEGER() does not support this value type');
   }
 
   function isDateFormatSpec(spec){
@@ -1063,6 +1086,7 @@
           case 'LOWER': return String(args[0]??'').toLowerCase();
           case 'LENGTH': return String(args[0]??'').length;
           case 'INT': return parseInt(args[0]??0,10);
+          case 'INTEGER': return toIntegerValue(args[0]);
           case 'FLOAT': return parseFloat(args[0]??0);
           case 'STRING':{
             const source=args[0];
