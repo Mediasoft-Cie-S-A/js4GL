@@ -26,13 +26,11 @@ python -m http.server
 ```
 
 
-## Utilisation Node.js
+## Tests
 
-```bash
-node test.js
-```
+Utilisez toujours la page [`index.html`](./index.html) comme base pour vos tests et vos vérifications manuelles. Elle charge automatiquement l'interpréteur (`mini4GL.js`) et propose l'interface interactive (éditeur, sortie, statut, etc.).
 
-Le script lit un exemple de programme, l'exécute avec l'interpréteur et affiche les résultats dans la console.
+Pour automatiser des scénarios de test, servez simplement le dépôt (via `npm start`, `npx serve`, `python -m http.server`, ...) puis faites pointer vos outils vers `http://localhost:<port>/index.html`.
 
 ## Sauvegarder la base de démonstration
 
