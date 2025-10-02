@@ -93,7 +93,18 @@
     'PARAMETER',
     'OUTPUT',
     'DESCENDING',
-    'BREAK'
+    'BREAK',
+    'PRIVATE',
+    'EXTERNAL',
+    'IN',
+    'SUPER',
+    'ORDINAL',
+    'PERSISTENT',
+    'THREAD',
+    'SAFE',
+    'CDECL',
+    'PASCAL',
+    'STDCALL'
   ]);
 
   const statementRegistry = (typeof require === 'function'
@@ -952,6 +963,29 @@
       throw new Error(`Unknown procedure ${node.name}`);
     }
     const proc=env.procedures[node.name];
+    if(proc.external){
+      throw new Error(`External procedure ${proc.name || node.name} is not supported in this runtime`);
+    }
+    if(proc.inSuper){
+      throw new Error(`Procedure ${proc.name || node.name} declared IN SUPER is not supported`);
+    }
+    if(proc.prototypeOnly){
+      throw new Error(`Procedure ${proc.name || node.name} is declared without an executable body`);
+    }
+    if(proc.isPrivate){
+      let currentEnv = env;
+      let allowed = false;
+      while(currentEnv){
+        if(currentEnv === proc.ownerEnv){
+          allowed = true;
+          break;
+        }
+        currentEnv = currentEnv.parent || null;
+      }
+      if(!allowed){
+        throw new Error(`Procedure ${proc.name || node.name} is PRIVATE and cannot be run from this context`);
+      }
+    }
     const localEnv={
       vars:Object.create(null),
       varDefs:Object.create(null),
