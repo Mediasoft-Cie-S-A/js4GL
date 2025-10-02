@@ -96,6 +96,18 @@
     'BREAK'
   ]);
 
+  const statementRegistry = (typeof require === 'function'
+    ? require('./src/mini4gl/statements')
+    : (global.Mini4GLStatementRegistry || null));
+
+  if (!statementRegistry) {
+    throw new Error('Mini4GL statement registry is not available. Ensure statement modules are loaded.');
+  }
+
+  const STATEMENT_KEYWORD_MAP = statementRegistry.keywordMap || Object.create(null);
+  const IDENTIFIER_PARSERS = statementRegistry.identifierParsers || [];
+  const STATEMENT_EXECUTORS = statementRegistry.executors || Object.create(null);
+
   let defaultPrismaClient;
   let defaultPrismaEnsureReady;
   let triedDefaultPrisma = false;
@@ -190,194 +202,29 @@
 
   Parser.prototype.parseStatement=function(){
     const t=this.peek();
-    switch(t.type){
-      case 'ASSIGN':
-      case 'IDENT': return this.parseAssignLike();
-      case 'DEFINE': return this.parseDefineStatement();
-      case 'PROCEDURE': return this.parseProcedure();
-      case 'RUN': return this.parseRun();
-      case 'DISPLAY':
-      case 'PRINT': return this.parseDisplay();
-      case 'INPUT': return this.parseInput();
-      case 'IF': return this.parseIf();
-      case 'DO': return this.parseDo();
-      case 'REPEAT': return this.parseRepeat();
-      case 'WHILE': return this.parseWhile();
-      case 'FOR': return this.parseForEach();
-      case 'FIND': return this.parseFind();
-      case 'END': this.eat('END'); this.optionalDot(); return {type:'Empty'};
-      default:
-        throw new SyntaxError(`Unexpected token ${t.type}`);
+    if(t.type==='END'){
+      this.eat('END');
+      this.optionalDot();
+      return {type:'Empty'};
     }
+
+    if(t.type==='IDENT'){
+      for(const handler of IDENTIFIER_PARSERS){
+        if(handler && typeof handler.parse==='function'){
+          return handler.parse(this, t);
+        }
+      }
+    }
+
+    const handler=STATEMENT_KEYWORD_MAP[t.type];
+    if(handler && typeof handler.parse==='function'){
+      return handler.parse(this, t);
+    }
+
+    throw new SyntaxError(`Unexpected token ${t.type}`);
   };
 
   Parser.prototype.optionalDot=function(){ if(this.match('DOT')) return; };
-
-  Parser.prototype.parseAssignLike=function(){
-    // supports: ASSIGN x = expr . | x = expr .
-    if(this.match('ASSIGN')){ /* fallthrough to identifier */ }
-    const id=this.eat('IDENT').value;
-    const assignTok=this.eat('OP');
-    if(assignTok.value !== '=') throw new SyntaxError(`Expected '=' but got ${assignTok.value}`);
-    const value=this.parseExpr();
-    this.optionalDot();
-    return { type:'Assign', id: id.toLowerCase(), value };
-  };
-
-  Parser.prototype.parseDefineStatement=function(){
-    this.eat('DEFINE');
-    const next=this.peek();
-    if(next.type==='VARIABLE'){
-      this.eat('VARIABLE');
-      const details=this.parseDefineDetails();
-      this.optionalDot();
-      return { type:'DefineVariable', ...details };
-    }
-    if(next.type==='INPUT' || next.type==='OUTPUT'){
-      const mode=this.eat(next.type).type;
-      this.eat('PARAMETER');
-      const details=this.parseDefineDetails();
-      this.optionalDot();
-      return { type:'DefineParameter', mode, ...details };
-    }
-    throw new SyntaxError('Unsupported DEFINE form');
-  };
-
-  Parser.prototype.parseDefineDetails=function(){
-    const id=this.eat('IDENT').value;
-    let dataType=null;
-    if(this.match('AS')){
-      const typeTok=this.peek();
-      if(typeTok.type==='IDENT'){ dataType=this.eat('IDENT').value.toUpperCase(); }
-      else { dataType=this.eat(typeTok.type).value || typeTok.type; dataType=String(dataType).toUpperCase(); }
-    }
-    let init=null;
-    let noUndo=false;
-    while(true){
-      const next=this.peek();
-      if(next.type==='INIT'){
-        this.eat('INIT');
-        if(this.peek().type==='OP' && this.peek().value==='=') this.eat('OP');
-        init=this.parseExpr();
-        continue;
-      }
-      if(next.type==='NO'){
-        this.eat('NO');
-        if(this.peek().type==='OP' && this.peek().value==='-') this.eat('OP');
-        const undoTok=this.peek();
-        if(undoTok.type==='UNDO' || (undoTok.type==='IDENT' && undoTok.value.toUpperCase()==='UNDO')){
-          this.eat(undoTok.type);
-        }
-        noUndo=true;
-        continue;
-      }
-      break;
-    }
-    return { id:id.toLowerCase(), dataType, init, noUndo };
-  };
-
-  function isExprStartToken(tok){
-    if(!tok) return false;
-    if(['IDENT','NUMBER','STRING','UNKNOWN','LPAREN'].includes(tok.type)) return true;
-    if(tok.type==='OP' && (tok.value==='+' || tok.value==='-')) return true;
-    if(tok.type==='NOT') return true;
-    return false;
-  }
-
-  Parser.prototype.parseDisplay=function(){
-    this.eat(this.peek().type); // DISPLAY or PRINT
-    const items=[];
-    while(true){
-      const expr=this.parseExpr();
-      const meta={ expr };
-      while(true){
-        const next=this.peek();
-        if(next.type==='LABEL'){
-          this.eat('LABEL');
-          meta.label=this.parseExpr();
-          continue;
-        }
-        if(next.type==='FORMAT'){
-          this.eat('FORMAT');
-          meta.format=this.parseExpr();
-          continue;
-        }
-        break;
-      }
-      items.push(meta);
-      if(this.match('COMMA')) continue;
-      const next=this.peek();
-      if(isExprStartToken(next)) continue;
-      break;
-    }
-    const withOptions=[];
-    if(this.match('WITH')){
-      while(true){
-        const next=this.peek();
-        if(next.type==='CENTERED'){
-          this.eat('CENTERED');
-          withOptions.push('CENTERED');
-        } else if(next.type==='IDENT'){
-          withOptions.push(this.eat('IDENT').value.toUpperCase());
-        } else {
-          break;
-        }
-        if(!this.match('COMMA')) break;
-      }
-    }
-    this.optionalDot();
-    return { type:'Display', items, withOptions };
-  };
-
-  Parser.prototype.parseInput=function(){
-    this.eat('INPUT');
-    const id=this.eat('IDENT').value.toLowerCase();
-    this.optionalDot();
-    return { type:'Input', id };
-  };
-
-  Parser.prototype.parseIf=function(){
-    this.eat('IF');
-    const test=this.parseExpr();
-    this.eat('THEN');
-    const consequent=this.parsePossiblyBlock();
-    let alternate=null;
-    if(this.match('ELSE')){
-      alternate=this.parsePossiblyBlock();
-    }
-    // If bodies were a single statement followed by DOT, it's already eaten; if they were blocks, END. handled inside.
-    return { type:'If', test, consequent, alternate };
-  };
-
-  Parser.prototype.parseDo=function(){
-    this.eat('DO');
-    let whileExpr=null;
-    if(this.match('WHILE')){ whileExpr=this.parseExpr(); }
-    if(this.match('COLON')){ /* block follows */ }
-    const body=this.parseBlockStatements();
-    this.eat('END'); this.optionalDot();
-    return { type:'Do', whileExpr, body };
-  };
-
-  Parser.prototype.parseRepeat=function(){
-    this.eat('REPEAT');
-    let whileExpr=null;
-    if(this.match('WHILE')){ whileExpr=this.parseExpr(); }
-    if(this.match('COLON')){ /* block follows */ }
-    const body=this.parseBlockStatements();
-    this.eat('END'); this.optionalDot();
-    return { type:'Repeat', whileExpr, body };
-  };
-
-  Parser.prototype.parseWhile=function(){
-    this.eat('WHILE');
-    const test=this.parseExpr();
-    this.eat('DO');
-    if(this.match('COLON')){ /* block follows */ }
-    const body=this.parseBlockStatements();
-    this.eat('END'); this.optionalDot();
-    return { type:'While', test, body };
-  };
 
   Parser.prototype.parsePossiblyBlock=function(){
     // Either a single statement terminated by DOT, or a block starting with optional ':' and ending with END.
@@ -400,64 +247,6 @@
     return body;
   };
 
-  Parser.prototype.parseProcedure=function(){
-    this.eat('PROCEDURE');
-    const name=this.eat('IDENT').value.toLowerCase();
-    if(this.match('COLON')){ /* optional colon before body */ }
-    const body=[];
-    const parameters=[];
-    while(true){
-      const next=this.peek();
-      if(next.type==='EOF'){ throw new SyntaxError(`Unexpected EOF inside PROCEDURE ${name}`); }
-      if(next.type==='END'){
-        const lookahead=this.toks[this.i+1];
-        if(lookahead && lookahead.type==='PROCEDURE'){
-          this.eat('END');
-          this.eat('PROCEDURE');
-          this.optionalDot();
-          break;
-        }
-      }
-      if(this.match('DOT')) continue;
-      const stmt=this.parseStatement();
-      if(stmt.type==='DefineParameter'){
-        parameters.push({
-          name: stmt.id,
-          mode: stmt.mode,
-          dataType: stmt.dataType,
-          init: stmt.init,
-          noUndo: stmt.noUndo
-        });
-        continue;
-      }
-      body.push(stmt);
-    }
-    return { type:'Procedure', name, parameters, body };
-  };
-
-  Parser.prototype.parseRun=function(){
-    this.eat('RUN');
-    const name=this.eat('IDENT').value.toLowerCase();
-    const args=[];
-    if(this.match('LPAREN')){
-      if(this.peek().type!=='RPAREN'){
-        while(true){
-          let mode=null;
-          const modeTok=this.peek();
-          if(modeTok.type==='INPUT' || modeTok.type==='OUTPUT'){
-            mode=this.eat(modeTok.type).type;
-          }
-          const expr=this.parseExpr();
-          args.push({ mode: mode || null, expr });
-          if(!this.match('COMMA')) break;
-        }
-      }
-      this.eat('RPAREN');
-    }
-    this.optionalDot();
-    return { type:'Run', name, args };
-  };
-
   Parser.prototype.parseFieldPath=function(){
     const segments=[this.eat('IDENT').value];
     while(true){
@@ -474,79 +263,6 @@
       break;
     }
     return segments;
-  };
-
-  Parser.prototype.parseForEach=function(){
-    this.eat('FOR');
-    const qualifierTok=this.peek();
-    if(!['EACH','FIRST','LAST'].includes(qualifierTok.type)){
-      throw new SyntaxError('Expected EACH, FIRST, or LAST after FOR');
-    }
-    const qualifier=this.eat(qualifierTok.type).type;
-    const target=this.eat('IDENT').value;
-    let relation=null;
-    if(this.match('OF')){
-      relation=this.eat('IDENT').value;
-    }
-    let noLock=false;
-    if(this.match('NO')){
-      if(this.peek().type==='OP' && this.peek().value==='-') this.eat('OP');
-      const lockTok=this.peek();
-      if(lockTok.type==='LOCK' || (lockTok.type==='IDENT' && String(lockTok.value).toUpperCase()==='LOCK')){
-        this.eat(lockTok.type);
-        noLock=true;
-      } else {
-        throw new SyntaxError('Expected LOCK after NO in FOR EACH');
-      }
-    }
-    let where=null;
-    if(this.match('WHERE')){
-      where=this.parseExpr();
-    }
-    const orderBy=[];
-    while(true){
-      let hadBreak=false;
-      if(this.match('BREAK')){
-        hadBreak=true;
-      }
-      if(!this.match('BY')){
-        if(hadBreak) throw new SyntaxError('BREAK must be followed by BY');
-        break;
-      }
-      const path=this.parseFieldPath();
-      const descending=!!this.match('DESCENDING');
-      orderBy.push({ path, descending, break: hadBreak });
-    }
-    this.eat('COLON');
-    const body=this.parseBlockStatements();
-    this.eat('END'); this.optionalDot();
-    return { type:'ForEach', qualifier, target, relation, where, orderBy, body, noLock };
-  };
-
-  Parser.prototype.parseFind=function(){
-    this.eat('FIND');
-    let qualifier=null;
-    if(this.match('FIRST')){ qualifier='FIRST'; }
-    const target=this.eat('IDENT').value;
-    let relation=null;
-    if(this.match('OF')){
-      relation=this.eat('IDENT').value;
-    }
-    let where=null;
-    if(this.match('WHERE')){
-      where=this.parseExpr();
-    }
-    let noError=false;
-    if(this.match('NO')){
-      if(this.peek().type==='OP' && this.peek().value==='-') this.eat('OP');
-      const errTok=this.peek();
-      if(errTok.type==='ERROR' || (errTok.type==='IDENT' && String(errTok.value).toUpperCase()==='ERROR')){
-        this.eat(errTok.type);
-      }
-      noError=true;
-    }
-    this.optionalDot();
-    return { type:'Find', target, relation, where, qualifier, noError };
   };
 
   // Expressions: precedence climbing
@@ -1282,172 +998,31 @@
     }
   }
 
+  const runtimeContext={
+    setVar,
+    evalExpr,
+    truthy,
+    execBlock,
+    initialValueForType,
+    formatDisplayValue,
+    centerLine,
+    buildWhere,
+    relationWhere,
+    mergeWhereClauses,
+    buildOrderBy,
+    lowerFirst,
+    runProcedure
+  };
+
   async function execStmt(node, env){
-    switch(node.type){
-      case 'Empty': return;
-      case 'Assign': setVar(env, node.id, evalExpr(node.value,env)); return;
-      case 'DefineVariable':{
-        const value = node.init ? evalExpr(node.init, env) : initialValueForType(node.dataType);
-        env.vars[node.id]=value;
-        if(env.varDefs) env.varDefs[node.id]={ dataType: node.dataType, noUndo: node.noUndo };
-        return;
-      }
-      case 'DefineParameter':{
-        // Parameters are handled during PROCEDURE parsing/execution; they should not execute at runtime.
-        return;
-      }
-      case 'Procedure':{
-        if(!env.procedures) env.procedures=Object.create(null);
-        env.procedures[node.name]=node;
-        return;
-      }
-      case 'Run':{
-        return runProcedure(node, env);
-      }
-      case 'Display':{
-        const parts=node.items.map(item=>{
-          const value=evalExpr(item.expr, env);
-          const formatted=formatDisplayValue(value, item.format ? evalExpr(item.format, env) : null);
-          if(item.label){
-            const labelVal=evalExpr(item.label, env);
-            const labelStr=labelVal==null? '' : String(labelVal);
-            if(labelStr.length){
-              return `${labelStr} ${formatted}`.trim();
-            }
-          }
-          return formatted;
-        });
-        let line=parts.join(' ');
-        if(node.withOptions && node.withOptions.some(opt=>String(opt).toUpperCase()==='CENTERED')){
-          line=centerLine(line);
-        }
-        env.output(line);
-        return;
-      }
-      case 'Input':{
-        const val = env.inputs.length? env.inputs.shift() : null;
-        setVar(env, node.id, val); return;
-      }
-      case 'If':{
-        if(truthy(evalExpr(node.test,env))) await execBlock(node.consequent,env);
-        else if(node.alternate) await execBlock(node.alternate,env);
-        return;
-      }
-      case 'Do':{
-        if(node.whileExpr){
-          while(truthy(evalExpr(node.whileExpr,env))){
-            await execBlock({type:'Block', body:node.body}, env);
-          }
-        } else {
-          await execBlock({type:'Block', body:node.body}, env);
-        }
-        return;
-      }
-      case 'Repeat':{
-        if(node.whileExpr){
-          while(truthy(evalExpr(node.whileExpr,env))){ await execBlock({type:'Block', body:node.body}, env); }
-        } else {
-          // unconditional repeat -> avoid infinite loop; user can extend with LEAVE/NEXT
-          throw new Error('REPEAT without WHILE not supported in this mini-interpreter');
-        }
-        return;
-      }
-      case 'While':{
-        while(truthy(evalExpr(node.test,env))){ await execBlock({type:'Block', body:node.body}, env); }
-        return;
-      }
-      case 'Block': return execBlock(node, env);
-      case 'ForEach':{
-        const prisma=env.prisma;
-        if(!prisma) throw new Error('Prisma client is required for FOR EACH statements');
-        const targetLower=node.target.toLowerCase();
-        const delegateName=lowerFirst(node.target);
-        const delegate=prisma[delegateName];
-        if(!delegate || typeof delegate.findMany!=='function'){
-          throw new Error(`Prisma model ${node.target} is not available`);
-        }
-        const qualifier=(node.qualifier || 'EACH').toUpperCase();
-        const query={};
-        const whereClause=buildWhere(node.where, env, targetLower);
-        if(whereClause) query.where=whereClause;
-        if(node.relation){
-          const parentKey=node.relation.toLowerCase();
-          const parentRecord=env.records ? env.records[parentKey] : undefined;
-          if(!parentRecord) throw new Error(`No active record for ${node.relation} to satisfy FOR EACH ${node.target} OF ${node.relation}`);
-          const relationClause=relationWhere(targetLower, parentKey, parentRecord);
-          query.where=mergeWhereClauses(query.where || null, relationClause);
-        }
-        if(qualifier==='EACH' && node.orderBy && node.orderBy.length){
-          query.orderBy=node.orderBy.map(entry=>buildOrderBy(entry, targetLower, env));
-        }
-        let results=[];
-        if(qualifier==='FIRST'){
-          if(typeof delegate.findFirst!=='function'){
-            throw new Error(`Prisma model ${node.target} does not support findFirst`);
-          }
-          const record=await delegate.findFirst(query);
-          if(record) results=[record];
-        } else if(qualifier==='LAST'){
-          const list=await delegate.findMany(query);
-          if(list.length) results=[list[list.length-1]];
-        } else {
-          results=await delegate.findMany(query);
-        }
-        const hadRecord=env.records && Object.prototype.hasOwnProperty.call(env.records, targetLower);
-        const hadVar=Object.prototype.hasOwnProperty.call(env.vars, targetLower);
-        const prevRecord=hadRecord ? env.records[targetLower] : undefined;
-        const prevVar=hadVar ? env.vars[targetLower] : undefined;
-        if(env.records) env.records[targetLower]=null;
-        for(const row of results){
-          if(env.records) env.records[targetLower]=row;
-          env.vars[targetLower]=row;
-          await execBlock({type:'Block', body:node.body}, env);
-        }
-        if(env.records){
-          if(hadRecord) env.records[targetLower]=prevRecord;
-          else delete env.records[targetLower];
-        }
-        if(hadVar) env.vars[targetLower]=prevVar;
-        else delete env.vars[targetLower];
-        return;
-      }
-      case 'Find':{
-        const prisma=env.prisma;
-        if(!prisma) throw new Error('Prisma client is required for FIND statements');
-        const targetLower=node.target.toLowerCase();
-        const delegateName=lowerFirst(node.target);
-        const delegate=prisma[delegateName];
-        if(!delegate || typeof delegate.findFirst!=='function'){
-          throw new Error(`Prisma model ${node.target} is not available`);
-        }
-        const query={};
-        const whereClause=buildWhere(node.where, env, targetLower);
-        if(whereClause) query.where=whereClause;
-        if(node.relation){
-          const parentKey=node.relation.toLowerCase();
-          const parentRecord=env.records ? env.records[parentKey] : undefined;
-          if(!parentRecord){
-            throw new Error(`No active record for ${node.relation} to satisfy FIND ${node.target} OF ${node.relation}`);
-          }
-          const relationClause=relationWhere(targetLower, parentKey, parentRecord);
-          query.where=mergeWhereClauses(query.where || null, relationClause);
-        }
-        const record=await delegate.findFirst(query);
-        if(!record){
-          if(node.noError){
-            if(env.records) env.records[targetLower]=null;
-            env.vars[targetLower]=null;
-            return;
-          }
-          throw new Error(`FIND ${node.target} failed: no record found`);
-        }
-        if(env.records) env.records[targetLower]=record;
-        env.vars[targetLower]=record;
-        return;
-      }
-      default:
-        throw new Error('Unknown stmt node '+node.type);
+    if(!node) return;
+    if(node.type==='Empty') return;
+    if(node.type==='Block') return execBlock(node, env);
+    const executor=STATEMENT_EXECUTORS[node.type];
+    if(executor){
+      return executor(node, env, runtimeContext);
     }
+    throw new Error('Unknown stmt node '+node.type);
   }
 
   async function execBlock(block, env){
