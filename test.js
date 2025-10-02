@@ -58,6 +58,18 @@ const tests = [
     }
   },
   {
+    name: 'DISPLAY allows multiple expressions without commas',
+    program: `
+      DEFINE VARIABLE custNum AS INTEGER INIT 7.
+      DEFINE VARIABLE fullName AS CHARACTER INIT "Robin".
+      DEFINE VARIABLE city AS CHARACTER INIT "Concord".
+      DISPLAY custNum fullName city.
+    `,
+    verify: ({ output }) => {
+      assert.deepStrictEqual(output, ['7 Robin Concord']);
+    }
+  },
+  {
     name: 'RUN executes procedures with INPUT and OUTPUT parameters',
     program: `
       PROCEDURE calcDays:
