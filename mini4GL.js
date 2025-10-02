@@ -819,7 +819,73 @@
   }
 
   function lowerFirst(str){ return str ? str.charAt(0).toLowerCase() + str.slice(1) : str; }
+  function upperFirst(str){ return str ? str.charAt(0).toUpperCase() + str.slice(1) : str; }
   function normalizeFieldSegment(seg){ return lowerFirst(seg); }
+
+  function getDmmf(env){
+    const prisma=env && env.prisma;
+    if(!prisma) return null;
+    const dmmf=prisma._dmmf;
+    if(dmmf && dmmf.modelMap) return dmmf;
+    return null;
+  }
+
+  function getModelByName(dmmf, modelName){
+    if(!dmmf || !modelName) return null;
+    if(dmmf.modelMap && dmmf.modelMap[modelName]) return dmmf.modelMap[modelName];
+    if(Array.isArray(dmmf.datamodel?.models)){
+      return dmmf.datamodel.models.find(m=>m.name===modelName) || null;
+    }
+    return null;
+  }
+
+  function findFieldBySegment(model, segment){
+    if(!model) return null;
+    const lower=String(segment??'').toLowerCase();
+    return model.fields?.find(f=>f.name.toLowerCase()===lower) || null;
+  }
+
+  function resolveFieldPath(pathSegments, targetLower, env){
+    const path=Array.isArray(pathSegments)? [...pathSegments] : [];
+    if(!path.length){
+      return { normalizedPath: path, lastField: null, lastModelName: upperFirst(targetLower) };
+    }
+    const dmmf=getDmmf(env);
+    if(!dmmf){
+      return { normalizedPath: path.map(normalizeFieldSegment), lastField: null, lastModelName: upperFirst(targetLower) };
+    }
+    const initialModel=getModelByName(dmmf, upperFirst(targetLower));
+    if(!initialModel){
+      return { normalizedPath: path.map(normalizeFieldSegment), lastField: null, lastModelName: upperFirst(targetLower) };
+    }
+    const normalized=[];
+    let currentModel=initialModel;
+    let lastField=null;
+    let lastModelName=currentModel.name;
+    for(let i=0;i<path.length;i++){
+      const segment=path[i];
+      const field=findFieldBySegment(currentModel, segment);
+      if(!field){
+        const available=(currentModel.fields||[]).map(f=>f.name).sort();
+        throw new Error(`Unknown field ${segment} on ${currentModel.name}. Available fields: ${available.join(', ')}`);
+      }
+      normalized.push(field.name);
+      lastField=field;
+      lastModelName=currentModel.name;
+      const isLast=i===path.length-1;
+      if(!isLast){
+        if(field.kind!=='object'){
+          throw new Error(`Field ${field.name} on ${currentModel.name} is not a relation; cannot access ${path[i+1]}`);
+        }
+        const nextModel=getModelByName(dmmf, field.type);
+        if(!nextModel){
+          throw new Error(`Unsupported relation ${field.name} on ${currentModel.name}`);
+        }
+        currentModel=nextModel;
+      }
+    }
+    return { normalizedPath: normalized, lastField, lastModelName };
+  }
 
   function resolveFieldValue(path, env){
     if(!path || !path.length) return null;
@@ -938,11 +1004,25 @@
         const rightPath=fieldPathFromNode(node.right, env, targetLower);
         if(leftPath && !rightPath){
           const value=literalFromNode(node.right, env);
-          return buildComparison(leftPath, node.op, value);
+          const { normalizedPath, lastField, lastModelName }=resolveFieldPath(leftPath, targetLower, env);
+          if(lastField && lastField.kind==='object'){
+            if(lastField.isList){
+              throw new Error(`Field ${lastField.name} on ${lastModelName} is a list relation and cannot be compared to a value`);
+            }
+            throw new Error(`Field ${lastField.name} on ${lastModelName} is a relation and cannot be compared to a value`);
+          }
+          return buildComparison(normalizedPath, node.op, value);
         }
         if(rightPath && !leftPath){
           const value=literalFromNode(node.left, env);
-          return buildComparison(rightPath, flipOperator(node.op), value);
+          const { normalizedPath, lastField, lastModelName }=resolveFieldPath(rightPath, targetLower, env);
+          if(lastField && lastField.kind==='object'){
+            if(lastField.isList){
+              throw new Error(`Field ${lastField.name} on ${lastModelName} is a list relation and cannot be compared to a value`);
+            }
+            throw new Error(`Field ${lastField.name} on ${lastModelName} is a relation and cannot be compared to a value`);
+          }
+          return buildComparison(normalizedPath, flipOperator(node.op), value);
         }
         throw new Error('WHERE clause must compare a field to a value');
       }
@@ -951,13 +1031,20 @@
     }
   }
 
-  function buildOrderBy(path, targetLower){
+  function buildOrderBy(path, targetLower, env){
     const stripped=stripTargetFromPath(path, targetLower);
     const effective=stripped.length ? stripped : path;
     if(!effective.length) throw new Error('BY clause requires a field name');
+    const { normalizedPath, lastField, lastModelName }=resolveFieldPath(effective, targetLower, env);
+    if(lastField && lastField.kind==='object'){
+      if(lastField.isList){
+        throw new Error(`Cannot ORDER BY list relation ${lastField.name} on ${lastModelName}`);
+      }
+      throw new Error(`Cannot ORDER BY relation ${lastField.name} on ${lastModelName}`);
+    }
     let acc='asc';
-    for(let i=effective.length-1;i>=0;i--){
-      acc={ [normalizeFieldSegment(effective[i])]: acc };
+    for(let i=normalizedPath.length-1;i>=0;i--){
+      acc={ [normalizeFieldSegment(normalizedPath[i])]: acc };
     }
     return acc;
   }
@@ -1187,7 +1274,7 @@
           query.where=mergeWhereClauses(query.where || null, relationClause);
         }
         if(node.orderBy && node.orderBy.length){
-          query.orderBy=node.orderBy.map(path=>buildOrderBy(path, targetLower));
+          query.orderBy=node.orderBy.map(path=>buildOrderBy(path, targetLower, env));
         }
         const results=await delegate.findMany(query);
         const hadRecord=env.records && Object.prototype.hasOwnProperty.call(env.records, targetLower);
