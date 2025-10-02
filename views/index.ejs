@@ -283,8 +283,19 @@
             if (payload.status !== 'ok') {
               throw new Error(payload.message || 'Erreur lors de la génération des données.');
             }
-            const details = `${payload.customers} client(s), ${payload.orders} commande(s)`;
-            setStatus(`Base de démonstration régénérée (${details}).`);
+            const summaryParts = [
+              { value: payload.customers, label: 'client(s)' },
+              { value: payload.salesmen, label: 'commercial(aux)' },
+              { value: payload.items, label: 'article(s)' },
+              { value: payload.orders, label: 'commande(s)' },
+              { value: payload.orderLines, label: 'ligne(s)' }
+            ]
+              .filter((part) => typeof part.value === 'number')
+              .map((part) => `${part.value} ${part.label}`);
+            const details = summaryParts.join(', ');
+            setStatus(
+              `Base de démonstration régénérée${details ? ` (${details})` : ''}.`
+            );
           } catch (err) {
             console.error(err);
             setStatus(err.message || 'Impossible de générer les données.', true);

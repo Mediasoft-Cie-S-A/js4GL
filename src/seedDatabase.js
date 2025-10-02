@@ -2,193 +2,271 @@ const { PrismaClient } = require('@prisma/client');
 
 const customerSeedData = [
   {
-    custNum: 1001,
-    name: 'Acme Industries',
-    contact: 'Evelyn Harper',
-    phone: '603-555-0101',
-    address: '12 Industrial Way',
-    city: 'Concord',
-    state: 'NH',
-    postalCode: '03301',
-    balance: 1250.75,
-    creditLimit: 5000,
-    orders: [
-      {
-        orderNum: 5001,
-        total: 620.5,
-        status: 'PROCESSING',
-        orderDate: new Date('2024-03-02T00:00:00Z'),
-        shipDate: new Date('2024-03-05T00:00:00Z')
-      },
-      {
-        orderNum: 5002,
-        total: 310.0,
-        status: 'PENDING',
-        orderDate: new Date('2024-03-18T00:00:00Z'),
-        shipDate: null
-      }
+    name: 'Sportif Plus',
+    city: 'Lyon',
+    country: 'France',
+    phone: '+33 4 72 00 11 22'
+  },
+  {
+    name: 'Alpes Outdoor',
+    city: 'Grenoble',
+    country: 'France',
+    phone: '+33 4 76 42 58 90'
+  },
+  {
+    name: 'Bretagne Nautique',
+    city: 'Brest',
+    country: 'France',
+    phone: '+33 2 98 56 12 34'
+  }
+];
+
+const salesmanSeedData = [
+  {
+    name: 'Isabelle Laurent',
+    region: 'Auvergne-Rhône-Alpes'
+  },
+  {
+    name: 'Marc Dubois',
+    region: 'Île-de-France'
+  },
+  {
+    name: 'Sofia Martins',
+    region: 'Bretagne'
+  }
+];
+
+const itemSeedData = [
+  {
+    name: 'Raquette de tennis ProStrike',
+    category: 'Tennis',
+    price: 179.99
+  },
+  {
+    name: 'Ballon de basket StreetMaster',
+    category: 'Basketball',
+    price: 39.5
+  },
+  {
+    name: 'Chaussures de trail Alpina X',
+    category: 'Running',
+    price: 129.0
+  },
+  {
+    name: 'Combinaison de surf Atlantik 4/3',
+    category: 'Surf',
+    price: 249.0
+  },
+  {
+    name: 'Grip Performance',
+    category: 'Accessoires',
+    price: 8.5
+  }
+];
+
+const orderSeedData = [
+  {
+    orderDate: new Date('2024-04-12T00:00:00Z'),
+    customer: 'Sportif Plus',
+    salesman: 'Isabelle Laurent',
+    lines: [
+      { item: 'Raquette de tennis ProStrike', quantity: 2, price: 179.99 },
+      { item: 'Grip Performance', quantity: 6, price: 8.5 }
     ]
   },
   {
-    custNum: 1005,
-    name: 'Granite Outfitters',
-    contact: 'Liam Chen',
-    phone: '603-555-0142',
-    address: '88 Summit Ave',
-    city: 'Littleton',
-    state: 'NH',
-    postalCode: '03561',
-    balance: 980.4,
-    creditLimit: 4200,
-    orders: [
-      {
-        orderNum: 5003,
-        total: 1540.25,
-        status: 'SHIPPED',
-        orderDate: new Date('2024-04-05T00:00:00Z'),
-        shipDate: new Date('2024-04-10T00:00:00Z')
-      },
-      {
-        orderNum: 5004,
-        total: 275.0,
-        status: 'BACKORDER',
-        orderDate: new Date('2024-04-21T00:00:00Z'),
-        shipDate: null
-      }
+    orderDate: new Date('2024-04-18T00:00:00Z'),
+    customer: 'Alpes Outdoor',
+    salesman: 'Marc Dubois',
+    lines: [
+      { item: 'Chaussures de trail Alpina X', quantity: 5, price: 129.0 },
+      { item: 'Ballon de basket StreetMaster', quantity: 3, price: 39.5 }
     ]
   },
   {
-    custNum: 1010,
-    name: 'Lakeside Crafts',
-    contact: 'Nora Patel',
-    phone: '603-555-0175',
-    address: '5 Shoreline Rd',
-    city: 'Laconia',
-    state: 'NH',
-    postalCode: '03246',
-    balance: 430.2,
-    creditLimit: 3100,
-    orders: [
-      {
-        orderNum: 5005,
-        total: 865.5,
-        status: 'PROCESSING',
-        orderDate: new Date('2024-05-02T00:00:00Z'),
-        shipDate: new Date('2024-05-07T00:00:00Z')
-      },
-      {
-        orderNum: 5006,
-        total: 142.75,
-        status: 'PENDING',
-        orderDate: new Date('2024-05-19T00:00:00Z'),
-        shipDate: null
-      }
+    orderDate: new Date('2024-05-03T00:00:00Z'),
+    customer: 'Bretagne Nautique',
+    salesman: 'Sofia Martins',
+    lines: [
+      { item: 'Combinaison de surf Atlantik 4/3', quantity: 4, price: 249.0 }
+    ]
+  },
+  {
+    orderDate: new Date('2024-05-22T00:00:00Z'),
+    customer: 'Sportif Plus',
+    salesman: 'Marc Dubois',
+    lines: [
+      { item: 'Ballon de basket StreetMaster', quantity: 10, price: 37.0 },
+      { item: 'Grip Performance', quantity: 12, price: 7.9 }
     ]
   }
 ];
-async function ensureDatabaseSchema(prisma) {
-  const existingTables = await prisma.$queryRaw`SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('Customer', 'Order')`;
-  const tableSet = new Set(existingTables.map((table) => table.name));
 
-  if (!tableSet.has('Customer')) {
-    await prisma.$executeRawUnsafe(`
-      CREATE TABLE "Customer" (
-        "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-        "custNum" INTEGER NOT NULL,
-        "name" TEXT NOT NULL,
-        "contact" TEXT,
-        "phone" TEXT,
-        "address" TEXT,
-        "city" TEXT NOT NULL,
-        "state" TEXT NOT NULL DEFAULT 'NH',
-        "postalCode" TEXT,
-        "balance" REAL NOT NULL,
-        "creditLimit" REAL NOT NULL,
-        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    await prisma.$executeRawUnsafe(
-      'CREATE UNIQUE INDEX IF NOT EXISTS "Customer_custNum_key" ON "Customer"("custNum");'
-    );
+async function resetDatabase(prisma) {
+  await prisma.$executeRawUnsafe('PRAGMA foreign_keys = OFF;');
+  const tablesToDrop = [
+    'orderline',
+    'order',
+    'item',
+    'salesman',
+    'customer',
+    'OrderLine',
+    'Order',
+    'Item',
+    'Salesman',
+    'Customer'
+  ];
+
+  for (const table of tablesToDrop) {
+    await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "${table}";`);
   }
 
-  if (!tableSet.has('Order')) {
-    await prisma.$executeRawUnsafe(`
-      CREATE TABLE "Order" (
-        "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-        "orderNum" INTEGER NOT NULL,
-        "total" REAL NOT NULL,
-        "status" TEXT NOT NULL,
-        "orderDate" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "shipDate" DATETIME,
-        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "customerId" INTEGER NOT NULL,
-        CONSTRAINT "Order_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "Customer"("id") ON DELETE RESTRICT ON UPDATE CASCADE
-      );
-    `);
-    await prisma.$executeRawUnsafe(
-      'CREATE UNIQUE INDEX IF NOT EXISTS "Order_orderNum_key" ON "Order"("orderNum");'
-    );
-    await prisma.$executeRawUnsafe(
-      'CREATE INDEX IF NOT EXISTS "Order_customerId_idx" ON "Order"("customerId");'
-    );
-  }
+  await prisma.$executeRawUnsafe('PRAGMA foreign_keys = ON;');
 }
 
+async function applySport2000Schema(prisma) {
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE "customer" (
+      "customerId" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+      "name" TEXT NOT NULL,
+      "city" TEXT,
+      "country" TEXT,
+      "phone" TEXT
+    );
+  `);
+
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE "salesman" (
+      "salesmanId" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+      "name" TEXT NOT NULL,
+      "region" TEXT
+    );
+  `);
+
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE "item" (
+      "itemId" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+      "name" TEXT NOT NULL,
+      "category" TEXT,
+      "price" REAL NOT NULL
+    );
+  `);
+
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE "order" (
+      "orderId" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+      "orderDate" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "customerId" INTEGER NOT NULL,
+      "salesmanId" INTEGER,
+      CONSTRAINT "order_customerId_fkey"
+        FOREIGN KEY ("customerId")
+        REFERENCES "customer"("customerId")
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE,
+      CONSTRAINT "order_salesmanId_fkey"
+        FOREIGN KEY ("salesmanId")
+        REFERENCES "salesman"("salesmanId")
+        ON DELETE SET NULL
+        ON UPDATE CASCADE
+    );
+  `);
+
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE "orderline" (
+      "orderLineId" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+      "orderId" INTEGER NOT NULL,
+      "itemId" INTEGER NOT NULL,
+      "quantity" INTEGER NOT NULL,
+      "price" REAL NOT NULL,
+      CONSTRAINT "orderline_orderId_fkey"
+        FOREIGN KEY ("orderId")
+        REFERENCES "order"("orderId")
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE,
+      CONSTRAINT "orderline_itemId_fkey"
+        FOREIGN KEY ("itemId")
+        REFERENCES "item"("itemId")
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE
+    );
+  `);
+
+  await prisma.$executeRawUnsafe('CREATE INDEX "order_customerId_idx" ON "order"("customerId");');
+  await prisma.$executeRawUnsafe('CREATE INDEX "order_salesmanId_idx" ON "order"("salesmanId");');
+  await prisma.$executeRawUnsafe('CREATE INDEX "orderline_orderId_idx" ON "orderline"("orderId");');
+  await prisma.$executeRawUnsafe('CREATE INDEX "orderline_itemId_idx" ON "orderline"("itemId");');
+}
+
+function getOrThrow(map, key, type) {
+  const value = map.get(key);
+  if (!value) {
+    throw new Error(`Impossible de trouver ${type} « ${key} » dans les données de référence.`);
+  }
+  return value;
+}
 
 async function seedDatabase(existingClient) {
   const prisma = existingClient ?? new PrismaClient();
   const shouldDisconnect = !existingClient;
 
   try {
-    await ensureDatabaseSchema(prisma);
+    await resetDatabase(prisma);
+    await applySport2000Schema(prisma);
 
-    await prisma.$transaction([
-      prisma.order.deleteMany(),
-      prisma.customer.deleteMany()
-    ]);
+    const createdCustomers = await Promise.all(
+      customerSeedData.map((customer) => prisma.customer.create({ data: customer }))
+    );
+    const createdSalesmen = await Promise.all(
+      salesmanSeedData.map((salesman) => prisma.salesman.create({ data: salesman }))
+    );
+    const createdItems = await Promise.all(
+      itemSeedData.map((item) => prisma.item.create({ data: item }))
+    );
 
-    const createdCustomers = [];
+    const customerMap = new Map(createdCustomers.map((customer) => [customer.name, customer]));
+    const salesmanMap = new Map(createdSalesmen.map((salesman) => [salesman.name, salesman]));
+    const itemMap = new Map(createdItems.map((item) => [item.name, item]));
 
-    for (const customer of customerSeedData) {
-      const created = await prisma.customer.create({
+    let ordersCreated = 0;
+    let orderLinesCreated = 0;
+
+    for (const order of orderSeedData) {
+      const createdOrder = await prisma.order.create({
         data: {
-          custNum: customer.custNum,
-          name: customer.name,
-          contact: customer.contact,
-          phone: customer.phone,
-          address: customer.address,
-          city: customer.city,
-          state: customer.state,
-          postalCode: customer.postalCode,
-          balance: customer.balance,
-          creditLimit: customer.creditLimit,
-          orders: {
-            create: customer.orders.map((order) => ({
-              orderNum: order.orderNum,
-              total: order.total,
-              status: order.status,
-              orderDate: order.orderDate,
-              shipDate: order.shipDate
+          orderDate: order.orderDate,
+          customer: {
+            connect: { customerId: getOrThrow(customerMap, order.customer, 'le client').customerId }
+          },
+          salesman: order.salesman
+            ? {
+                connect: {
+                  salesmanId: getOrThrow(salesmanMap, order.salesman, 'le commercial').salesmanId
+                }
+              }
+            : undefined,
+          lines: {
+            create: order.lines.map((line) => ({
+              quantity: line.quantity,
+              price: line.price,
+              item: {
+                connect: { itemId: getOrThrow(itemMap, line.item, "l'article").itemId }
+              }
             }))
           }
         },
-        include: { orders: true }
+        include: { lines: true }
       });
 
-      createdCustomers.push(created);
+      ordersCreated += 1;
+      orderLinesCreated += createdOrder.lines.length;
     }
-
-
-    const ordersCreated = createdCustomers.reduce(
-      (sum, customer) => sum + (customer.orders?.length || 0),
-      0
-    );
 
     return {
       customersCreated: createdCustomers.length,
+      salesmenCreated: createdSalesmen.length,
+      itemsCreated: createdItems.length,
       ordersCreated,
-      customers: createdCustomers
+      orderLinesCreated
     };
   } finally {
     if (shouldDisconnect) {
@@ -200,4 +278,3 @@ async function seedDatabase(existingClient) {
 module.exports = {
   seedDatabase
 };
-

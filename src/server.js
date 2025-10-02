@@ -49,7 +49,10 @@ app.post('/api/seed', async (req, res) => {
     res.json({
       status: 'ok',
       customers: result.customersCreated,
-      orders: result.ordersCreated
+      salesmen: result.salesmenCreated,
+      items: result.itemsCreated,
+      orders: result.ordersCreated,
+      orderLines: result.orderLinesCreated
     });
   } catch (error) {
     console.error('Failed to seed database', error);

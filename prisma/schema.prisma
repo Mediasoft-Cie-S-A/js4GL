@@ -1,39 +1,63 @@
-datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
-}
-
 generator client {
   provider = "prisma-client-js"
 }
 
-model Customer {
-  id          Int       @id @default(autoincrement())
-  custNum     Int       @unique
-  name        String
-  contact     String?
-  phone       String?
-  address     String?
-  city        String
-  state       String    @default("NH")
-  postalCode  String?
-  balance     Float
-  creditLimit Float
-  createdAt   DateTime  @default(now())
+datasource db {
+  provider = "sqlite"
+  url      = "file:./sport2000.db"
+}
 
-  orders      Order[]
+model Customer {
+  customerId Int       @id @default(autoincrement())
+  name       String
+  city       String?
+  country    String?
+  phone      String?
+  orders     Order[]
+
+  @@map("customer")
+}
+
+model Salesman {
+  salesmanId Int       @id @default(autoincrement())
+  name       String
+  region     String?
+  orders     Order[]
+
+  @@map("salesman")
+}
+
+model Item {
+  itemId     Int         @id @default(autoincrement())
+  name       String
+  category   String?
+  price      Float
+  orderLines OrderLine[]
+
+  @@map("item")
 }
 
 model Order {
-  id          Int       @id @default(autoincrement())
-  orderNum    Int       @unique
-  total       Float
-  status      String
-  orderDate   DateTime  @default(now())
-  shipDate    DateTime?
-  createdAt   DateTime  @default(now())
+  orderId    Int         @id @default(autoincrement())
+  orderDate  DateTime    @default(now())
+  customer   Customer    @relation(fields: [customerId], references: [customerId])
+  customerId Int
+  salesman   Salesman?   @relation(fields: [salesmanId], references: [salesmanId])
+  salesmanId Int?
+  lines      OrderLine[]
 
-  customer    Customer  @relation(fields: [customerId], references: [id])
-  customerId  Int
+  @@map("order")
+}
+
+model OrderLine {
+  orderLineId Int    @id @default(autoincrement())
+  order       Order  @relation(fields: [orderId], references: [orderId])
+  orderId     Int
+  item        Item   @relation(fields: [itemId], references: [itemId])
+  itemId      Int
+  quantity    Int
+  price       Float
+
+  @@map("orderline")
 }
 
