@@ -820,7 +820,25 @@
 
   function lowerFirst(str){ return str ? str.charAt(0).toLowerCase() + str.slice(1) : str; }
   function upperFirst(str){ return str ? str.charAt(0).toUpperCase() + str.slice(1) : str; }
-  function normalizeFieldSegment(seg){ return lowerFirst(seg); }
+  function normalizeFieldSegment(seg){
+    if(!seg) return seg;
+    const str=String(seg).trim();
+    if(!str) return str;
+    const parts=str.split(/[_\s-]+/).filter(Boolean);
+    if(parts.length>1){
+      return parts
+        .map((part, idx)=>{
+          const lower=part.toLowerCase();
+          if(!lower) return '';
+          return idx===0 ? lower : lower.charAt(0).toUpperCase()+lower.slice(1);
+        })
+        .join('');
+    }
+    if(str.toUpperCase()===str){
+      return str.toLowerCase();
+    }
+    return lowerFirst(str);
+  }
 
   function getDmmf(env){
     const prisma=env && env.prisma;
