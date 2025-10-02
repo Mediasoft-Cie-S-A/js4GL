@@ -73,6 +73,7 @@
     'WHERE',
     'BY',
     'OF',
+    'LOCK',
     'FIND',
     'FIRST',
     'ERROR',
@@ -480,6 +481,17 @@
     if(this.match('OF')){
       relation=this.eat('IDENT').value;
     }
+    let noLock=false;
+    if(this.match('NO')){
+      if(this.peek().type==='OP' && this.peek().value==='-') this.eat('OP');
+      const lockTok=this.peek();
+      if(lockTok.type==='LOCK' || (lockTok.type==='IDENT' && String(lockTok.value).toUpperCase()==='LOCK')){
+        this.eat(lockTok.type);
+        noLock=true;
+      } else {
+        throw new SyntaxError('Expected LOCK after NO in FOR EACH');
+      }
+    }
     let where=null;
     if(this.match('WHERE')){
       where=this.parseExpr();
@@ -491,7 +503,7 @@
     this.eat('COLON');
     const body=this.parseBlockStatements();
     this.eat('END'); this.optionalDot();
-    return { type:'ForEach', target, relation, where, orderBy, body };
+    return { type:'ForEach', target, relation, where, orderBy, body, noLock };
   };
 
   Parser.prototype.parseFind=function(){
