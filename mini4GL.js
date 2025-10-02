@@ -24,7 +24,7 @@
   - FIND ... : fetches a single Prisma record (supports FIRST, WHERE, OF, NO-ERROR).
   - Expressions: + - * /, parentheses, comparisons (=, <>, <, <=, >, >=), logical AND/OR/NOT
   - Strings with double quotes, numbers (int/float).
-  - Builtins: UPPER(s), LOWER(s), LENGTH(s), INT(n), INTEGER(n), FLOAT(n), PRINT(...) alias of DISPLAY
+   - Builtins: UPPER(s), LOWER(s), LENGTH(s), INT(n), INTEGER(n), FLOAT(n), STRING(v[, format]), PRINT(...) alias of DISPLAY
 
   Not implemented (you can extend): database buffers, TRANSACTION, temp-tables, advanced locking hints, triggers, frames.
 
@@ -611,6 +611,81 @@
     return formatted;
   }
 
+  function formatTimeFromSeconds(value, formatSpec){
+    const specRaw = formatSpec == null ? '' : String(formatSpec);
+    if(!/^HH:MM(?::SS)?/i.test(specRaw.trimStart())) return undefined;
+    const timeMatch = specRaw.match(/HH:MM(?::SS)?/i);
+    if(!timeMatch) return undefined;
+    if(value==null) return '';
+    const numericValue = Number(value);
+    if(!Number.isFinite(numericValue)) return '';
+    const totalSeconds = Math.trunc(numericValue);
+    const secondsPerDay = 24 * 60 * 60;
+    const normalizedSeconds = ((totalSeconds % secondsPerDay) + secondsPerDay) % secondsPerDay;
+    const hour24 = Math.floor(normalizedSeconds / 3600);
+    const minute = Math.floor((normalizedSeconds % 3600) / 60);
+    const second = normalizedSeconds % 60;
+
+    const prefix = specRaw.slice(0, timeMatch.index);
+    let suffix = specRaw.slice(timeMatch.index + timeMatch[0].length);
+    const findMeridiemIndicator = (str)=>{
+      for(let i=0;i<str.length;i++){
+        const ch=str[i];
+        if(ch!=='A' && ch!=='a') continue;
+        const prev=i>0 ? str[i-1] : '';
+        if(/[A-Za-z]/.test(prev)) continue;
+        const next=str[i+1];
+        if(next && /[A-Za-z]/.test(next) && next!=='M' && next!=='m' && next!=='.') continue;
+        let length=1;
+        let cursor=i+1;
+        if(str[cursor]==='.'){ length++; cursor++; }
+        if(str[cursor]==='M' || str[cursor]==='m'){
+          length++; cursor++;
+          if(str[cursor]==='.'){ length++; }
+        }
+        const following=str[i+length];
+        if(following && /[A-Za-z]/.test(following) && following!=='.') continue;
+        return { index:i, length };
+      }
+      return null;
+    };
+    const indicatorMatch = findMeridiemIndicator(suffix);
+    let hourDisplay;
+    if(indicatorMatch){
+      const isPm = hour24 >= 12;
+      let adjustedHour = hour24 % 12;
+      if(adjustedHour === 0) adjustedHour = 12;
+      hourDisplay = adjustedHour < 10 ? ` ${adjustedHour}` : String(adjustedHour);
+      if(hour24 === 0){
+        hourDisplay = '12';
+      }
+      if(isPm){
+        hourDisplay = adjustedHour < 10 ? ` ${adjustedHour}` : String(adjustedHour);
+      }
+      const original = suffix.slice(indicatorMatch.index, indicatorMatch.index + indicatorMatch.length);
+      const replaced = isPm
+        ? original.replace(/A/, 'P').replace(/a/, 'p')
+        : original;
+      suffix = suffix.slice(0, indicatorMatch.index)
+        + replaced
+        + suffix.slice(indicatorMatch.index + indicatorMatch.length);
+    } else {
+      hourDisplay = String(hour24).padStart(2, '0');
+    }
+
+    const minuteStr = String(minute).padStart(2, '0');
+    const secondStr = String(second).padStart(2, '0');
+
+    let timeSegment = timeMatch[0];
+    timeSegment = timeSegment.replace(/HH/i, hourDisplay);
+    timeSegment = timeSegment.replace(/MM/i, minuteStr);
+    if(/SS/i.test(timeSegment)){
+      timeSegment = timeSegment.replace(/SS/i, secondStr);
+    }
+
+    return prefix + timeSegment + suffix;
+  }
+
   function formatDisplayValue(value, formatSpec){
     const raw=value==null ? '' : String(value);
     if(formatSpec==null) return raw;
@@ -1013,6 +1088,28 @@
           case 'INT': return parseInt(args[0]??0,10);
           case 'INTEGER': return toIntegerValue(args[0]);
           case 'FLOAT': return parseFloat(args[0]??0);
+          case 'STRING':{
+            const source=args[0];
+            const formatArg=args.length>=2 ? args[1] : null;
+            if(formatArg==null){
+              if(source==null) return '';
+              if(source instanceof Date){
+                return isNaN(source.getTime()) ? '' : source.toISOString();
+              }
+              if(typeof source==='object' && source!==null){
+                try {
+                  const str=source.toString();
+                  return typeof str==='string' ? str : String(str);
+                } catch(err){
+                  return '';
+                }
+              }
+              return String(source);
+            }
+            const timeFormatted=formatTimeFromSeconds(source, formatArg);
+            if(typeof timeFormatted!=='undefined') return timeFormatted;
+            return formatDisplayValue(source, formatArg);
+          }
           case 'MONTH':{
             const date=parse4GLDate(args[0]);
             return date ? date.getUTCMonth()+1 : null;
