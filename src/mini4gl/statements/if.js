@@ -6,9 +6,11 @@ function parseIf(parser) {
   parser.eat('THEN');
   const consequent = parser.parsePossiblyBlock();
   let alternate = null;
-  if (parser.match('ELSE')) {
+  if (parser.peek().type === 'ELSE') {
+    parser.eat('ELSE');
     alternate = parser.parsePossiblyBlock();
   }
+  parser.optionalDot();
   return { type: 'If', test, consequent, alternate };
 }
 
