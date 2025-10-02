@@ -12,6 +12,8 @@ const app = express();
 
 app.use(express.json({ limit: '256kb' }));
 
+app.use(express.static(ROOT_DIR));
+
 app.get('/mini4GL.js', (req, res) => {
   res.sendFile(path.join(ROOT_DIR, 'mini4GL.js'));
 });
