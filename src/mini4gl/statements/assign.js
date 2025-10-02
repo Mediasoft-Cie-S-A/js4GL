@@ -16,7 +16,7 @@ function executeAssign(node, env, context) {
   context.setVar(env, node.id, context.evalExpr(node.value, env));
 }
 
-const exported = {
+const assignStatement = {
   keywords: ['ASSIGN'],
   allowIdentifierStart: true,
   parse: parseAssign,
@@ -26,7 +26,7 @@ const exported = {
 };
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = exported;
+  module.exports = assignStatement;
 } else {
   const globalScope =
     typeof globalThis !== 'undefined'
@@ -37,5 +37,5 @@ if (typeof module !== 'undefined' && module.exports) {
           ? global
           : {};
   globalScope.Mini4GLStatementModules = globalScope.Mini4GLStatementModules || [];
-  globalScope.Mini4GLStatementModules.push(exported);
+  globalScope.Mini4GLStatementModules.push(assignStatement);
 }

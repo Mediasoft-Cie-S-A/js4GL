@@ -46,7 +46,7 @@ function executeProcedure(node, env) {
   env.procedures[node.name] = node;
 }
 
-const exported = {
+const procedureStatement = {
   keywords: ['PROCEDURE'],
   parse: parseProcedure,
   executors: {
@@ -55,7 +55,7 @@ const exported = {
 };
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = exported;
+  module.exports = procedureStatement;
 } else {
   const globalScope =
     typeof globalThis !== 'undefined'
@@ -66,5 +66,5 @@ if (typeof module !== 'undefined' && module.exports) {
           ? global
           : {};
   globalScope.Mini4GLStatementModules = globalScope.Mini4GLStatementModules || [];
-  globalScope.Mini4GLStatementModules.push(exported);
+  globalScope.Mini4GLStatementModules.push(procedureStatement);
 }

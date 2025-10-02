@@ -73,7 +73,7 @@ function executeDefineParameter() {
   // Parameters are handled at procedure invocation time.
 }
 
-const exported = {
+const defineStatement = {
   keywords: ['DEFINE'],
   parse: parseDefine,
   executors: {
@@ -83,7 +83,7 @@ const exported = {
 };
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = exported;
+  module.exports = defineStatement;
 } else {
   const globalScope =
     typeof globalThis !== 'undefined'
@@ -94,5 +94,5 @@ if (typeof module !== 'undefined' && module.exports) {
           ? global
           : {};
   globalScope.Mini4GLStatementModules = globalScope.Mini4GLStatementModules || [];
-  globalScope.Mini4GLStatementModules.push(exported);
+  globalScope.Mini4GLStatementModules.push(defineStatement);
 }
