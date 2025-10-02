@@ -76,6 +76,7 @@
     'LOCK',
     'FIND',
     'FIRST',
+    'LAST',
     'ERROR',
     'DEFINE',
     'VARIABLE',
@@ -90,7 +91,9 @@
     'PROCEDURE',
     'RUN',
     'PARAMETER',
-    'OUTPUT'
+    'OUTPUT',
+    'DESCENDING',
+    'BREAK'
   ]);
 
   let defaultPrismaClient;
@@ -475,7 +478,11 @@
 
   Parser.prototype.parseForEach=function(){
     this.eat('FOR');
-    this.eat('EACH');
+    const qualifierTok=this.peek();
+    if(!['EACH','FIRST','LAST'].includes(qualifierTok.type)){
+      throw new SyntaxError('Expected EACH, FIRST, or LAST after FOR');
+    }
+    const qualifier=this.eat(qualifierTok.type).type;
     const target=this.eat('IDENT').value;
     let relation=null;
     if(this.match('OF')){
@@ -497,13 +504,23 @@
       where=this.parseExpr();
     }
     const orderBy=[];
-    while(this.match('BY')){
-      orderBy.push(this.parseFieldPath());
+    while(true){
+      let hadBreak=false;
+      if(this.match('BREAK')){
+        hadBreak=true;
+      }
+      if(!this.match('BY')){
+        if(hadBreak) throw new SyntaxError('BREAK must be followed by BY');
+        break;
+      }
+      const path=this.parseFieldPath();
+      const descending=!!this.match('DESCENDING');
+      orderBy.push({ path, descending, break: hadBreak });
     }
     this.eat('COLON');
     const body=this.parseBlockStatements();
     this.eat('END'); this.optionalDot();
-    return { type:'ForEach', target, relation, where, orderBy, body, noLock };
+    return { type:'ForEach', qualifier, target, relation, where, orderBy, body, noLock };
   };
 
   Parser.prototype.parseFind=function(){
@@ -1114,7 +1131,8 @@
     }
   }
 
-  function buildOrderBy(path, targetLower, env){
+  function buildOrderBy(entry, targetLower, env){
+    const path=entry.path;
     const stripped=stripTargetFromPath(path, targetLower);
     const effective=stripped.length ? stripped : path;
     if(!effective.length) throw new Error('BY clause requires a field name');
@@ -1125,7 +1143,7 @@
       }
       throw new Error(`Cannot ORDER BY relation ${lastField.name} on ${lastModelName}`);
     }
-    let acc='asc';
+    let acc=entry.descending ? 'desc' : 'asc';
     for(let i=normalizedPath.length-1;i>=0;i--){
       acc={ [normalizeFieldSegment(normalizedPath[i])]: acc };
     }
@@ -1348,6 +1366,7 @@
         if(!delegate || typeof delegate.findMany!=='function'){
           throw new Error(`Prisma model ${node.target} is not available`);
         }
+        const qualifier=(node.qualifier || 'EACH').toUpperCase();
         const query={};
         const whereClause=buildWhere(node.where, env, targetLower);
         if(whereClause) query.where=whereClause;
@@ -1358,10 +1377,22 @@
           const relationClause=relationWhere(targetLower, parentKey, parentRecord);
           query.where=mergeWhereClauses(query.where || null, relationClause);
         }
-        if(node.orderBy && node.orderBy.length){
-          query.orderBy=node.orderBy.map(path=>buildOrderBy(path, targetLower, env));
+        if(qualifier==='EACH' && node.orderBy && node.orderBy.length){
+          query.orderBy=node.orderBy.map(entry=>buildOrderBy(entry, targetLower, env));
         }
-        const results=await delegate.findMany(query);
+        let results=[];
+        if(qualifier==='FIRST'){
+          if(typeof delegate.findFirst!=='function'){
+            throw new Error(`Prisma model ${node.target} does not support findFirst`);
+          }
+          const record=await delegate.findFirst(query);
+          if(record) results=[record];
+        } else if(qualifier==='LAST'){
+          const list=await delegate.findMany(query);
+          if(list.length) results=[list[list.length-1]];
+        } else {
+          results=await delegate.findMany(query);
+        }
         const hadRecord=env.records && Object.prototype.hasOwnProperty.call(env.records, targetLower);
         const hadVar=Object.prototype.hasOwnProperty.call(env.vars, targetLower);
         const prevRecord=hadRecord ? env.records[targetLower] : undefined;
