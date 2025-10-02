@@ -24,7 +24,7 @@
   - FIND ... : fetches a single Prisma record (supports FIRST, WHERE, OF, NO-ERROR).
   - Expressions: + - * /, parentheses, comparisons (=, <>, <, <=, >, >=), logical AND/OR/NOT
   - Strings with double quotes, numbers (int/float).
-   - Builtins: UPPER(s), LOWER(s), LENGTH(s), INT(n), INTEGER(n), FLOAT(n), STRING(v[, format]), PRINT(...) alias of DISPLAY
+   - Builtins: UPPER(s), LOWER(s), LENGTH(s), INT(n), INTEGER(n), DECIMAL(x), FLOAT(n), STRING(v[, format]), PRINT(...) alias of DISPLAY
 
   Not implemented (you can extend): database buffers, TRANSACTION, temp-tables, advanced locking hints, triggers, frames.
 
