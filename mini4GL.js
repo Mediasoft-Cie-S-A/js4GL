@@ -271,6 +271,14 @@
     return { id:id.toLowerCase(), dataType, init, noUndo };
   };
 
+  function isExprStartToken(tok){
+    if(!tok) return false;
+    if(['IDENT','NUMBER','STRING','UNKNOWN','LPAREN'].includes(tok.type)) return true;
+    if(tok.type==='OP' && (tok.value==='+' || tok.value==='-')) return true;
+    if(tok.type==='NOT') return true;
+    return false;
+  }
+
   Parser.prototype.parseDisplay=function(){
     this.eat(this.peek().type); // DISPLAY or PRINT
     const items=[];
@@ -292,7 +300,10 @@
         break;
       }
       items.push(meta);
-      if(!this.match('COMMA')) break;
+      if(this.match('COMMA')) continue;
+      const next=this.peek();
+      if(isExprStartToken(next)) continue;
+      break;
     }
     const withOptions=[];
     if(this.match('WITH')){
