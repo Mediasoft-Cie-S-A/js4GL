@@ -925,6 +925,53 @@
     return value ?? null;
   }
 
+  function normalizeLooseKey(key){
+    return String(key ?? '').replace(/[^0-9A-Za-z]/g,'').toLowerCase();
+  }
+
+  function lookupLooseRecordValue(record, looseTarget){
+    if(!looseTarget) return { found:false, value:null };
+    for(const key of Object.keys(record)){
+      if(normalizeLooseKey(key)===looseTarget){
+        const value=record[key];
+        return { found:true, value: value ?? null };
+      }
+    }
+    return { found:false, value:null };
+  }
+
+  function lookupFieldInRecords(fieldName, env){
+    if(!env || !env.records) return { found:false, value:null };
+    const raw=String(fieldName ?? '');
+    if(!raw) return { found:false, value:null };
+    const normalized=raw.toLowerCase();
+    const looseTarget=normalizeLooseKey(raw);
+    for(const [bufferName, record] of Object.entries(env.records)){
+      if(!record) continue;
+      let normalizedPath=null;
+      try {
+        const resolved=resolveFieldPath([normalized], bufferName, env);
+        normalizedPath = resolved && resolved.normalizedPath ? resolved.normalizedPath : null;
+      } catch(err){
+        normalizedPath=null;
+      }
+      if(normalizedPath && normalizedPath.length){
+        let current=record;
+        let missing=false;
+        for(const segment of normalizedPath){
+          if(current==null || typeof current==='undefined'){ missing=true; break; }
+          current=current[segment];
+        }
+        if(!missing && typeof current!=='undefined'){
+          return { found:true, value: current ?? null };
+        }
+      }
+      const loose=lookupLooseRecordValue(record, looseTarget);
+      if(loose.found) return loose;
+    }
+    return { found:false, value:null };
+  }
+
   function stripTargetFromPath(rawPath, targetLower){
     const path=[...rawPath];
     if(path.length && path[0].toLowerCase()===targetLower){ path.shift(); }
@@ -1092,6 +1139,8 @@
       case 'Var':{
         if(hasVar(env, node.name)) return getVar(env, node.name);
         if(env.records && Object.prototype.hasOwnProperty.call(env.records, node.name)) return env.records[node.name];
+        const lookup=lookupFieldInRecords(node.name, env);
+        if(lookup.found) return lookup.value;
         return null;
       }
       case 'Unknown': return null;
