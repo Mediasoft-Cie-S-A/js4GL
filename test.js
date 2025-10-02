@@ -13,6 +13,28 @@ const tests = [
     }
   },
   {
+    name: 'Question mark literal represents unknown values in comparisons',
+    program: `
+      DEFINE VARIABLE shipDate AS CHARACTER NO-UNDO INIT ?.
+      DEFINE VARIABLE statusMessage AS CHARACTER NO-UNDO INIT "aucune".
+
+      IF shipDate NE ? THEN
+        ASSIGN statusMessage = "devrait rester vide".
+      END.
+
+      ASSIGN shipDate = "2024-05-01".
+
+      IF shipDate NE ? THEN
+        ASSIGN statusMessage = "expédié".
+      END.
+
+      DISPLAY statusMessage.
+    `,
+    verify: ({ output }) => {
+      assert.deepStrictEqual(output, ['expédié']);
+    }
+  },
+  {
     name: 'ENTRY splits lists with default and custom delimiters',
     program: `
       DISPLAY ENTRY(2, "alpha,beta,gamma").

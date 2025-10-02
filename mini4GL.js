@@ -71,6 +71,7 @@
       // comments: /* ... */ and // ...
       if(ch==='/' && src[i+1]==='*'){ i+=2; while(i<n && !(src[i]==='*' && src[i+1]==='/')) i++; i+=2; continue; }
       if(ch==='/' && src[i+1]==='/'){ i+=2; while(i<n && src[i]!=="\n") i++; continue; }
+      if(ch==='?'){ push('UNKNOWN', null); i++; continue; }
       // strings: "..."
       if(ch==='"'){
         i++; let start=i; let s=""; let esc=false;
@@ -529,6 +530,7 @@
       }
       return { type:'Var', name:segments[0].toLowerCase() };
     }
+    if(this.match('UNKNOWN')){ return { type:'Unknown' }; }
     if(this.match('LPAREN')){ const e=this.parseExpr(); this.eat('RPAREN'); return e; }
     throw new SyntaxError(`Unexpected token in expression: ${t.type}`);
   };
@@ -904,6 +906,7 @@
         if(env.records && Object.prototype.hasOwnProperty.call(env.records, node.name)) return env.records[node.name];
         return null;
       }
+      case 'Unknown': return null;
       case 'Field': return resolveFieldValue(node.path, env);
       case 'Unary':{
         const v=evalExpr(node.arg, env);

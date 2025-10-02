@@ -179,13 +179,13 @@
         statusEl.style.color = isError ? '#ff7373' : '#8be9fd';
       }
 
-      runBtn.addEventListener('click', () => {
+      runBtn.addEventListener('click', async () => {
         clearOutput();
         setStatus('Exécution...');
         const source = editor.value;
         try {
           const start = performance.now();
-          const result = Mini4GL.interpret4GL(source, {
+          const result = await Mini4GL.interpret4GL(source, {
             onOutput: appendOutput,
           });
           const duration = (performance.now() - start).toFixed(2);
