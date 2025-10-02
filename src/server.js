@@ -6,13 +6,11 @@ const { seedDatabase } = require('./seedDatabase');
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 const ROOT_DIR = path.resolve(__dirname, '..');
+const HTML_ENTRY = path.join(ROOT_DIR, 'index.html');
 
 const app = express();
 
 app.use(express.json({ limit: '256kb' }));
-
-app.set('view engine', 'ejs');
-app.set('views', path.join(ROOT_DIR, 'views'));
 
 app.get('/mini4GL.js', (req, res) => {
   res.sendFile(path.join(ROOT_DIR, 'mini4GL.js'));
@@ -71,8 +69,8 @@ app.all('/api/run', (req, res) => {
   res.status(405).json({ status: 'error', message: 'Method Not Allowed' });
 });
 
-app.get('/', (req, res) => {
-  res.render('index');
+app.get(['/','/index.html'], (req, res) => {
+  res.sendFile(HTML_ENTRY);
 });
 
 app.use((req, res) => {
