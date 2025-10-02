@@ -275,6 +275,32 @@ async function seedDatabase(existingClient) {
   }
 }
 
+async function ensureDatabaseSchema(existingClient) {
+  const prisma = existingClient ?? new PrismaClient();
+  const shouldDisconnect = !existingClient;
+
+  try {
+    const requiredTables = ['customer', 'salesman', 'item', 'order', 'orderline'];
+    const placeholders = requiredTables.map(() => '?').join(', ');
+    const existingTables = await prisma.$queryRawUnsafe(
+      `SELECT name FROM sqlite_master WHERE type='table' AND name IN (${placeholders})`,
+      ...requiredTables
+    );
+
+    const missingTables = requiredTables.filter(
+      (tableName) => !existingTables.some((row) => row.name === tableName)
+    );
+
+    if (missingTables.length > 0) {
+      await applySport2000Schema(prisma);
+    }
+  } finally {
+    if (shouldDisconnect) {
+      await prisma.$disconnect();
+    }
+  }
+}
+
 module.exports = {
   seedDatabase,
   ensureDatabaseSchema
