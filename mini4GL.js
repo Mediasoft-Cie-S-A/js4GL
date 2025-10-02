@@ -24,7 +24,7 @@
   - FIND ... : fetches a single Prisma record (supports FIRST, WHERE, OF, NO-ERROR).
   - Expressions: + - * /, parentheses, comparisons (=, <>, <, <=, >, >=), logical AND/OR/NOT
   - Strings with double quotes, numbers (int/float).
-  - Builtins: UPPER(s), LOWER(s), LENGTH(s), INT(n), FLOAT(n), PRINT(...) alias of DISPLAY
+  - Builtins: UPPER(s), LOWER(s), LENGTH(s), INT(n), FLOAT(n), DECIMAL(x), PRINT(...) alias of DISPLAY
 
   Not implemented (you can extend): database buffers, TRANSACTION, temp-tables, advanced locking hints, triggers, frames.
 
@@ -487,6 +487,63 @@
     return isNaN(parsed.getTime()) ? null : parsed;
   }
 
+  function toJulianDayNumber(date){
+    if(!(date instanceof Date) || isNaN(date.getTime())) return null;
+    const day=date.getUTCDate();
+    const month=date.getUTCMonth()+1;
+    const year=date.getUTCFullYear();
+    const a=Math.floor((14-month)/12);
+    const y=year+4800-a;
+    const m=month+12*a-3;
+    return day + Math.floor((153*m+2)/5) + 365*y + Math.floor(y/4) - Math.floor(y/100) + Math.floor(y/400) - 32045;
+  }
+
+  function decimalValueOf(value){
+    if(value==null) return null;
+    if(typeof value==='number'){
+      const num=Number(value);
+      return Number.isFinite(num) ? num : null;
+    }
+    if(typeof value==='boolean'){
+      return value ? 1 : 0;
+    }
+    if(typeof value==='bigint'){
+      const num=Number(value);
+      if(!Number.isFinite(num)){
+        throw new Error('DECIMAL() cannot represent bigint value');
+      }
+      return num;
+    }
+    if(value instanceof Date){
+      const julian=toJulianDayNumber(value);
+      return julian==null ? null : julian;
+    }
+    if(typeof value==='string'){
+      const trimmed=value.trim();
+      if(!trimmed) return 0;
+      const normalized=trimmed.replace(/,/g,'');
+      if(!/^[-+]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(normalized)){
+        throw new Error(`DECIMAL() cannot convert '${value}' to a decimal`);
+      }
+      const num=Number(normalized);
+      if(!Number.isFinite(num)){
+        throw new Error(`DECIMAL() cannot convert '${value}' to a decimal`);
+      }
+      return num;
+    }
+    if(value && typeof value.valueOf==='function'){
+      const primitive=value.valueOf();
+      if(primitive!==value) return decimalValueOf(primitive);
+    }
+    if(value && typeof value.toString==='function'){
+      const stringValue=value.toString();
+      if(stringValue && stringValue!== '[object Object]'){
+        return decimalValueOf(stringValue);
+      }
+    }
+    throw new Error('DECIMAL() cannot convert provided value to a decimal');
+  }
+
   function isDateFormatSpec(spec){
     if(typeof spec!=='string') return false;
     const trimmed=spec.trim();
@@ -932,6 +989,7 @@
           case 'LENGTH': return String(args[0]??'').length;
           case 'INT': return parseInt(args[0]??0,10);
           case 'FLOAT': return parseFloat(args[0]??0);
+          case 'DECIMAL': return decimalValueOf(args[0] ?? null);
           case 'MONTH':{
             const date=parse4GLDate(args[0]);
             return date ? date.getUTCMonth()+1 : null;
