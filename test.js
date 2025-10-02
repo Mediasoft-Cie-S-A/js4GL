@@ -90,11 +90,46 @@ const tests = [
       assert.deepStrictEqual(output, ['4']);
       assert.strictEqual(env.vars.totaldays, 4);
     }
-  }
+  },
+  (() => {
+    const findCalls = [];
+    const prismaStub = {
+      customer: {
+        async findFirst(query) {
+          findCalls.push(query);
+          const idEquals = query?.where?.id?.equals;
+          if (idEquals === 42) {
+            return { id: 42, name: 'Alice' };
+          }
+          return null;
+        }
+      }
+    };
+    return {
+      name: 'FIND retrieves a single record and respects NO-ERROR',
+      program: `
+        FIND FIRST Customer WHERE Customer.Id = 42.
+        DISPLAY Customer.Name.
+        FIND Customer WHERE Customer.Id = 999 NO-ERROR.
+        DISPLAY Customer.Name.
+      `,
+      options: { prisma: prismaStub },
+      verify: ({ output, env }) => {
+        assert.deepStrictEqual(output, ['Alice', '']);
+        assert.strictEqual(findCalls.length, 2);
+        assert.strictEqual(findCalls[0]?.where?.id?.equals, 42);
+        assert.strictEqual(findCalls[1]?.where?.id?.equals, 999);
+        assert.strictEqual(env.vars.customer, null);
+        assert.strictEqual(env.records.customer, null);
+      }
+    };
+  })()
 ];
 
 async function runSingleTest(test){
-  const result = await interpret4GL(test.program, { inputs: [], onOutput: () => {} });
+  const baseOptions = { inputs: [], onOutput: () => {} };
+  const options = test.options ? { ...baseOptions, ...test.options } : baseOptions;
+  const result = await interpret4GL(test.program, options);
   test.verify(result);
   return result;
 }

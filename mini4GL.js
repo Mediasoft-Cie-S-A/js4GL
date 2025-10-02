@@ -20,11 +20,13 @@
       END.
   - WHILE ... DO ... END (classic form)
   - REPEAT WITH WHILE expr: REPEAT WHILE expr: ... END.
+  - FOR EACH ... : loops over Prisma model records with optional WHERE/BY/OF.
+  - FIND ... : fetches a single Prisma record (supports FIRST, WHERE, OF, NO-ERROR).
   - Expressions: + - * /, parentheses, comparisons (=, <>, <, <=, >, >=), logical AND/OR/NOT
   - Strings with double quotes, numbers (int/float).
   - Builtins: UPPER(s), LOWER(s), LENGTH(s), INT(n), FLOAT(n), PRINT(...) alias of DISPLAY
 
-  Not implemented (you can extend): database buffers, FOR EACH, FIND, TRANSACTION, temp-tables, procedures, triggers, frames.
+  Not implemented (you can extend): database buffers, TRANSACTION, temp-tables, advanced locking hints, triggers, frames.
 
   Usage (Node):
     const { interpret4GL } = require('./mini4gl.js');
@@ -50,8 +52,44 @@
 
 (function (global) {
   const KEYWORDS = new Set([
-    'ASSIGN','DISPLAY','PRINT','INPUT','IF','THEN','ELSE','END','DO','WHILE','REPEAT','LEAVE','NEXT','AND','OR','NOT','FOR','EACH','WHERE','BY','OF',
-    'DEFINE','VARIABLE','AS','NO','UNDO','INIT','LABEL','FORMAT','WITH','CENTERED','PROCEDURE','RUN','PARAMETER','OUTPUT'
+    'ASSIGN',
+    'DISPLAY',
+    'PRINT',
+    'INPUT',
+    'IF',
+    'THEN',
+    'ELSE',
+    'END',
+    'DO',
+    'WHILE',
+    'REPEAT',
+    'LEAVE',
+    'NEXT',
+    'AND',
+    'OR',
+    'NOT',
+    'FOR',
+    'EACH',
+    'WHERE',
+    'BY',
+    'OF',
+    'FIND',
+    'FIRST',
+    'ERROR',
+    'DEFINE',
+    'VARIABLE',
+    'AS',
+    'NO',
+    'UNDO',
+    'INIT',
+    'LABEL',
+    'FORMAT',
+    'WITH',
+    'CENTERED',
+    'PROCEDURE',
+    'RUN',
+    'PARAMETER',
+    'OUTPUT'
   ]);
 
   let defaultPrismaClient;
@@ -161,6 +199,7 @@
       case 'REPEAT': return this.parseRepeat();
       case 'WHILE': return this.parseWhile();
       case 'FOR': return this.parseForEach();
+      case 'FIND': return this.parseFind();
       case 'END': this.eat('END'); this.optionalDot(); return {type:'Empty'};
       default:
         throw new SyntaxError(`Unexpected token ${t.type}`);
@@ -441,6 +480,32 @@
     const body=this.parseBlockStatements();
     this.eat('END'); this.optionalDot();
     return { type:'ForEach', target, relation, where, orderBy, body };
+  };
+
+  Parser.prototype.parseFind=function(){
+    this.eat('FIND');
+    let qualifier=null;
+    if(this.match('FIRST')){ qualifier='FIRST'; }
+    const target=this.eat('IDENT').value;
+    let relation=null;
+    if(this.match('OF')){
+      relation=this.eat('IDENT').value;
+    }
+    let where=null;
+    if(this.match('WHERE')){
+      where=this.parseExpr();
+    }
+    let noError=false;
+    if(this.match('NO')){
+      if(this.peek().type==='OP' && this.peek().value==='-') this.eat('OP');
+      const errTok=this.peek();
+      if(errTok.type==='ERROR' || (errTok.type==='IDENT' && String(errTok.value).toUpperCase()==='ERROR')){
+        this.eat(errTok.type);
+      }
+      noError=true;
+    }
+    this.optionalDot();
+    return { type:'Find', target, relation, where, qualifier, noError };
   };
 
   // Expressions: precedence climbing
@@ -1129,6 +1194,40 @@
         }
         if(hadVar) env.vars[targetLower]=prevVar;
         else delete env.vars[targetLower];
+        return;
+      }
+      case 'Find':{
+        const prisma=env.prisma;
+        if(!prisma) throw new Error('Prisma client is required for FIND statements');
+        const targetLower=node.target.toLowerCase();
+        const delegateName=lowerFirst(node.target);
+        const delegate=prisma[delegateName];
+        if(!delegate || typeof delegate.findFirst!=='function'){
+          throw new Error(`Prisma model ${node.target} is not available`);
+        }
+        const query={};
+        const whereClause=buildWhere(node.where, env, targetLower);
+        if(whereClause) query.where=whereClause;
+        if(node.relation){
+          const parentKey=node.relation.toLowerCase();
+          const parentRecord=env.records ? env.records[parentKey] : undefined;
+          if(!parentRecord){
+            throw new Error(`No active record for ${node.relation} to satisfy FIND ${node.target} OF ${node.relation}`);
+          }
+          const relationClause=relationWhere(targetLower, parentKey, parentRecord);
+          query.where=mergeWhereClauses(query.where || null, relationClause);
+        }
+        const record=await delegate.findFirst(query);
+        if(!record){
+          if(node.noError){
+            if(env.records) env.records[targetLower]=null;
+            env.vars[targetLower]=null;
+            return;
+          }
+          throw new Error(`FIND ${node.target} failed: no record found`);
+        }
+        if(env.records) env.records[targetLower]=record;
+        env.vars[targetLower]=record;
         return;
       }
       default:
