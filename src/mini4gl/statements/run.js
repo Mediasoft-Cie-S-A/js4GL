@@ -29,7 +29,7 @@ function executeRun(node, env, context) {
   return context.runProcedure(node, env);
 }
 
-const exported = {
+const runStatement = {
   keywords: ['RUN'],
   parse: parseRun,
   executors: {
@@ -38,7 +38,7 @@ const exported = {
 };
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = exported;
+  module.exports = runStatement;
 } else {
   const globalScope =
     typeof globalThis !== 'undefined'
@@ -49,5 +49,5 @@ if (typeof module !== 'undefined' && module.exports) {
           ? global
           : {};
   globalScope.Mini4GLStatementModules = globalScope.Mini4GLStatementModules || [];
-  globalScope.Mini4GLStatementModules.push(exported);
+  globalScope.Mini4GLStatementModules.push(runStatement);
 }

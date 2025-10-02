@@ -83,7 +83,7 @@ function executeDisplay(node, env, context) {
   env.output(line);
 }
 
-const exported = {
+const displayStatement = {
   keywords: ['DISPLAY', 'PRINT'],
   parse: parseDisplay,
   executors: {
@@ -92,7 +92,7 @@ const exported = {
 };
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = exported;
+  module.exports = displayStatement;
 } else {
   const globalScope =
     typeof globalThis !== 'undefined'
@@ -103,5 +103,5 @@ if (typeof module !== 'undefined' && module.exports) {
           ? global
           : {};
   globalScope.Mini4GLStatementModules = globalScope.Mini4GLStatementModules || [];
-  globalScope.Mini4GLStatementModules.push(exported);
+  globalScope.Mini4GLStatementModules.push(displayStatement);
 }

@@ -23,7 +23,7 @@ async function executeDo(node, env, context) {
   }
 }
 
-const exported = {
+const doStatement = {
   keywords: ['DO'],
   parse: parseDo,
   executors: {
@@ -32,7 +32,7 @@ const exported = {
 };
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = exported;
+  module.exports = doStatement;
 } else {
   const globalScope =
     typeof globalThis !== 'undefined'
@@ -43,5 +43,5 @@ if (typeof module !== 'undefined' && module.exports) {
           ? global
           : {};
   globalScope.Mini4GLStatementModules = globalScope.Mini4GLStatementModules || [];
-  globalScope.Mini4GLStatementModules.push(exported);
+  globalScope.Mini4GLStatementModules.push(doStatement);
 }
