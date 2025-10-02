@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const { interpret4GL } = require('../mini4GL.js');
 const { prisma } = require('./db');
 const { seedDatabase } = require('./seedDatabase');
 
@@ -8,11 +9,38 @@ const ROOT_DIR = path.resolve(__dirname, '..');
 
 const app = express();
 
+app.use(express.json({ limit: '256kb' }));
+
 app.set('view engine', 'ejs');
 app.set('views', path.join(ROOT_DIR, 'views'));
 
 app.get('/mini4GL.js', (req, res) => {
   res.sendFile(path.join(ROOT_DIR, 'mini4GL.js'));
+});
+
+app.post('/api/run', async (req, res) => {
+  const { source, inputs } = req.body || {};
+  if (typeof source !== 'string' || !source.trim()) {
+    return res
+      .status(400)
+      .json({ status: 'error', message: 'Aucun programme 4GL fourni.' });
+  }
+
+  const sanitizedInputs = Array.isArray(inputs) ? inputs.slice(0, 64) : [];
+
+  try {
+    const result = await interpret4GL(source, {
+      prisma,
+      inputs: sanitizedInputs
+    });
+    res.json({ status: 'ok', output: result.output });
+  } catch (error) {
+    console.error('Execution error', error);
+    const message =
+      (typeof error?.message === 'string' && error.message.trim()) ||
+      "Erreur lors de l'exécution du programme.";
+    res.status(400).json({ status: 'error', message });
+  }
 });
 
 app.post('/api/seed', async (req, res) => {
@@ -30,6 +58,10 @@ app.post('/api/seed', async (req, res) => {
 });
 
 app.get('/api/seed', (req, res) => {
+  res.status(405).json({ status: 'error', message: 'Method Not Allowed' });
+});
+
+app.all('/api/run', (req, res) => {
   res.status(405).json({ status: 'error', message: 'Method Not Allowed' });
 });
 
