@@ -1,20 +1,33 @@
 'use strict';
 
-const widgetStateModule = typeof require === 'function'
-  ? require('./widgetState')
-  : (typeof globalThis !== 'undefined'
-      ? globalThis.Mini4GLWidgetState
+const viewWidgetHelpers = (() => {
+  if (typeof require === 'function') {
+    try {
+      return require('./widgetHelpers');
+    } catch (error) {
+      // Ignore and fall back to globals.
+    }
+  }
+  const scope =
+    typeof globalThis !== 'undefined'
+      ? globalThis
       : typeof window !== 'undefined'
-        ? window.Mini4GLWidgetState
+        ? window
         : typeof global !== 'undefined'
-          ? global.Mini4GLWidgetState
-          : null);
+          ? global
+          : {};
+  return {
+    getWidgetStateModule: () => scope.Mini4GLWidgetState || null
+  };
+})();
 
-if (!widgetStateModule) {
-  throw new Error('Widget state helpers are not available');
+function getWidgetStateModule() {
+  const module = viewWidgetHelpers.getWidgetStateModule();
+  if (!module) {
+    throw new Error('Widget state helpers are not available');
+  }
+  return module;
 }
-
-const widgetState = widgetStateModule;
 
 function parseView(parser) {
   parser.eat('VIEW');
@@ -44,6 +57,7 @@ function parseView(parser) {
 }
 
 function executeViewWidgets(node, env) {
+  const widgetState = getWidgetStateModule();
   for (const name of node.targets) {
     widgetState.setWidgetState(env, name, { visible: true });
   }
