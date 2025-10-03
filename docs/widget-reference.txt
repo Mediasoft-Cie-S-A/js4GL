@@ -1,0 +1,1271 @@
+ABL Reference
+Generated on: 3 October 2025
+1
+Widget Reference
+This section contains reference entries that describe the ABL widgets. Widgets are handle-based objects
+that provide visual representations of data and other elements of a user interface.
+Like all handle-based objects, widgets support attributes and methods to access and manipulate widget state
+and behavior. Widgets also support events to which an application can respond to interact with the state and
+behavior of each widget. For more information on the attributes and methods listed for each widget, see the
+Handle Attributes and Methods Reference. For more information on the events listed for each widget, see
+the Handle-based Object Events Reference. For information on non-visual handle-based objects, see the
+Handle Reference.
+You may consider a user-interface widget to be supported for all interfaces and on all operating systems
+unless otherwise indicated in the reference entry. These user-interface widgets do not apply to SpeedScript
+programming.
+Because widgets are not realized in batch mode, you cannot use any method or attribute that requires the
+widget to be realized in batch mode.
+Note: Of the common attributes listed for the following widgets, BGCOLOR, FGCOLOR, FONT, MOVABLE,
+RESIZABLE, and SELECTABLE apply only to graphical interfaces; DCOLOR and PFCOLOR apply only to
+character interfaces. In character interfaces, all attributes and methods that reference pixels (for example
+HEIGHT-PIXELS) use a system default pixel value for the equivalent value in characters.
+The following descriptions refer to both compile-time and run-time behavior, features that the language
+generally supports and determines at compile time and actions directed by using these features at run time.
+When describing compile-time features or actions, this section references ABL or the ABL compiler. When
+describing ABL-directed actions taken at run time, this section references the ABL Virtual Machine (AVM).
+2 See the Progress Software Corporation Product Documentation Copyright Notice/Trademark Legend here
+Contents
+1. BROWSE widget
+2. BUTTON widget
+3. COMBO-BOX widget
+4. CONTROL-FRAME widget
+5. DIALOG-BOX widget
+6. EDITOR widget
+7. FIELD-GROUP widget
+8. FILL-IN widget
+9. FRAME widget
+10. IMAGE widget
+11. LITERAL widget
+12. MENU widget
+13. MENU-ITEM widget
+14. RADIO-SET widget
+15. RECTANGLE widget
+16. SELECTION-LIST widget
+17. SHADOW-WINDOW widget
+18. SLIDER widget
+19. SUB-MENU widget
+20. TEXT widget
+21. TOGGLE-BOX widget
+22. WINDOW widget
+BROWSE widget
+A browse widget lets you see data and select records from all the records associated with a database query.
+You can define a static browse widget with the DEFINE BROWSE statement or a dynamic browse widget
+with the CREATE BROWSE statement. A browse can be either a read-only tool for browsing through
+records, or it can be an editing tool for updating records, depending on the options you specify.
+You can move and resize the browse and its components. Specifically, in graphical interfaces, you can move
+and resize the browse, move and change the width of the browse-column, and change the height of the
+browse-row. You can do all this through direct manipulation (by pointing, clicking, and dragging) and through
+ABL.
+Tip: See the Use the Browse Object topics in Develop ABL Applications for more information and examples
+of how to work with Browse objects.
+You can also use the mouse wheel to scroll the browse widget horizontally and vertically in Windows. When
+you rotate the mouse wheel up and down, the browse scrolls vertically up and down. When you rotate the
+mouse wheel up and down while holding down the CTRL key, the browse scrolls horizontally left and right.
+You can specify the number of rows the browse scrolls up and down per click of the mouse wheel on the
+Wheel tab in the Windows Mouse Properties dialog box (accessed through the Windows Control Panel).
+The following figure shows a read-only browse widget with colors applied to some of the rows using the
+BGCOLOR attribute. Note that the fifth row is selected:
+The following figure shows an updatable browse. Note the inline editing capability in the focused row:
+Accessing browse attributes and methods
+When accessing browse attributes and methods, it is important to understand the scope of each attribute and
+method. An attribute or method can apply to:
+• The browse widget as a whole.
+• A single browse column. In this case, any attribute or method that applies to a browse column, applies to:
+◦ All cells in the browse column (that is, all cells of the given column for all rows of the browse)
+◦ Any type of browse column (fill-in, combo-box, or toggle-box), except where noted
+• A single browse cell. In this case, the attribute or method applies to only the given cell at the intersection
+of the referenced column and the focused row.
+• Both the browse as a whole and a column or cell. For example, in the same trigger, you could change the
+background color of the whole browse to blue and the background color of the current cell to yellow.
+Syntax
+When accessing attributes and methods that apply to a browse widget as a whole, you must reference the
+browse widget using its name or handle, as shown in the following syntax examples:
+/* For a static browse */
+browse-name:attribute-or-method-name IN FRAME frame-name
+/* For a dynamic or static browse */
+browse-handle:attribute-or-method-name
+The IN FRAME qualifier is only necessary for a static browse to avoid ambiguity.
+When accessing attributes and methods that apply to a browse column or cell, you must reference the
+browse column or cell using the browse column's name or handle, as shown in the following syntax
+examples:
+/* For a static browse column */
+column-name:attribute-or-method-name IN BROWSE browse-name
+/* For a dynamic or static browse column */
+column-handle:attribute-or-method-name
+The IN BROWSE qualifier is only necessary for a static browse to avoid ambiguity, but it is good programming
+practice to always include it, especially when you reference the same field as a separate widget type.
+To access attributes and methods for a specific browse cell, you must be sure that a row is selected. You
+typically access browse cell attributes and methods in a ROW-DISPLAY trigger.
+For more information about accessing widget attributes and methods, see the Handle Attributes and
+Methods Reference.
+Attributes
+The following table lists all the attributes for the browse widget and their scope:
+Attribute Applies to
+ALLOW-COLUMN-SEARCHING attribute Browse
+AUTO-COMPLETION attribute Column (Applies only to combo-box browse columns)
+AUTO-RESIZE attribute Column
+AUTO-RETURN attribute Column
+AUTO-VALIDATE attribute Browse
+AUTO-ZAP attribute Cell (Applies only to fill-in and combo-box browse column)
+BGCOLOR attribute Browse, Column, Cell
+BUFFER-FIELD attribute Column
+COLUMN attribute Browse, Column
+COLUMN-BGCOLOR attribute Column
+COLUMN-DCOLOR attribute Column
+COLUMN-FGCOLOR attribute Column
+COLUMN-FONT attribute Column
+COLUMN-MOVABLE attribute Browse
+COLUMN-PFCOLOR attribute Column
+COLUMN-READ-ONLY attribute Column
+COLUMN-RESIZABLE attribute Browse
+COLUMN-SCROLLING attribute Browse
+CONTEXT-HELP-ID attribute Browse
+CURRENT-COLUMN attribute Browse
+CURRENT-ROW-MODIFIED attribute Browse
+CURSOR-OFFSET attribute Cell (Applies only to fill-in and combo-box browse column)
+DATA-TYPE attribute Column
+DBNAME attribute Column
+DCOLOR attribute Browse, Column, Cell
+DELIMITER attribute Column (Applies only to combo-box browse columns)
+DISABLE-AUTO-ZAP attribute Column
+DOWN attribute Browse
+DROP-TARGET attribute Browse
+DYNAMIC attribute Browse
+EDIT-CAN-PASTE attribute Cell (Applies only to fill-in and combo-box browse column)
+EDIT-CAN-UNDO attribute Cell (Applies only to fill-in and combo-box browse column)
+EXPANDABLE attribute Browse
+FGCOLOR attribute Browse, Column, Cell
+FIRST-COLUMN attribute Browse
+FIT-LAST-COLUMN attribute Browse
+FOCUSED-ROW attribute Browse
+FOCUSED-ROW-SELECTED attribute Browse
+FONT attribute Browse, Column, Cell (Applies only to fill-in and combobox browse column)
+FORMAT attribute Cell (Applies only to fill-in and combo-box browse column)
+FRAME attribute Browse
+FRAME-COL attribute Browse
+FRAME-NAME attribute Browse
+FRAME-ROW attribute Browse
+FRAME-X attribute Browse
+FRAME-Y attribute Browse
+HANDLE attribute Browse, Column, Cell
+HEIGHT-CHARS attribute Browse, Cell
+HEIGHT-PIXELS attribute Browse, Cell
+HELP attribute Browse, Column
+HIDDEN attribute Browse
+HWND attribute Browse, Cell
+INDEX attribute Column, Cell
+INNER-LINES attribute Column (Applies only to combo-box browse columns)
+INPUT-VALUE attribute Cell
+INSTANTIATING-PROCEDURE attribute Browse, Column
+LABEL attribute Column
+LABELS attribute Browse
+LABEL-BGCOLOR attribute Browse, Column
+LABEL-DCOLOR attribute Browse, Column
+LABEL-FGCOLOR attribute Browse, Column
+LABEL-FONT attribute Browse, Column
+LIST-ITEM-PAIRS attribute Column (Applies only to combo-box browse columns)
+LIST-ITEMS attribute Column (Applies only to combo-box browse columns)
+MANUAL-HIGHLIGHT attribute Browse
+MAX-CHARS attribute Column (Applies only to combo-box browse columns)
+MAX-DATA-GUESS attribute Browse
+MENU-KEY attribute Browse
+MENU-MOUSE attribute Browse
+MIN-COLUMN-WIDTH-CHARS attribute Browse
+MIN-COLUMN-WIDTH-PIXELS attribute Browse
+MIN-HEIGHT-CHARS attribute Browse
+MODIFIED attribute Browse, Column
+MOUSE-POINTER attribute Browse, Column
+MOVABLE attribute Browse, Column
+MULTIPLE attribute Browse
+NAME attribute Browse, Column, Cell
+NEW-ROW attribute Browse
+NEXT-COLUMN attribute Column
+NEXT-SIBLING attribute Browse
+NEXT-TAB-ITEM attribute Browse
+NO-EMPTY-SPACE attribute Browse
+NO-VALIDATE attribute Browse
+NUM-COLUMNS attribute Browse
+NUM-DROPPED-FILES attribute Browse
+NUM-ITEMS attribute Column (Applies only to combo-box browse columns)
+NUM-ITERATIONS attribute (widget objects) Browse
+NUM-LOCKED-COLUMNS attribute Browse
+NUM-SELECTED-ROWS attribute Browse
+NUM-VISIBLE-COLUMNS attribute Browse
+PARENT attribute Browse, Column
+PFCOLOR attribute Browse, Column, Cell
+POPUP-MENU attribute Browse
+PREV-COLUMN attribute Column
+PREV-SIBLING attribute Browse
+PREV-TAB-ITEM attribute Browse
+PRIVATE-DATA attribute Browse, column
+QUERY attribute Browse
+READ-ONLY attribute Browse, column
+REFRESHABLE attribute Browse
+RESIZABLE attribute Browse, column
+ROW attribute Browse, cell
+ROW-HEIGHT-CHARS attribute Browse
+ROW-HEIGHT-PIXELS attribute Browse
+ROW-MARKERS attribute Browse
+ROW-RESIZABLE attribute Browse
+SCREEN-VALUE attribute Cell
+SCROLLBAR-VERTICAL attribute Browse
+SELECTABLE attribute Browse
+SELECTED attribute Browse
+SELECTION-END attribute Column
+SELECTION-START attribute Column
+SELECTION-TEXT attribute Column
+SENSITIVE attribute Browse
+SEPARATORS attribute Browse
+SEPARATOR-FGCOLOR attribute Browse
+SORT attribute Column (Applies only to combo-box browse columns)
+SORT-ASCENDING attribute Column
+SORT-NUMBER attribute Column
+SUBTYPE attribute Column (Applies only to combo-box browse columns)
+TAB-POSITION attribute Browse
+TAB-STOP attribute Browse
+TABLE attribute Browse, Column
+TEXT-SELECTED attribute Column
+TITLE attribute Browse
+TITLE-BGCOLOR attribute Browse
+TITLE-DCOLOR attribute Browse
+TITLE-FGCOLOR attribute Browse
+TITLE-FONT attribute Browse
+TOOLTIP attribute Browse
+TYPE attribute Browse, Column, Cell
+UNIQUE-MATCH attribute Column (Applies only to combo-box browse columns)
+VIEW-FIRST-COLUMN-ON-REOPEN attribute Browse
+VISIBLE attribute Browse, Column
+WIDGET-ID attribute Browse
+WIDTH-CHARS attribute Browse, Column, Cell
+WIDTH-PIXELS attribute Browse, Column, Cell
+WINDOW attribute Browse
+X attribute Browse, Column
+Y attribute Browse, Cell
+Methods
+The following table lists all the methods for the browse widget and their scope:
+Method Applies to
+ADD-CALC-COLUMN( ) method Browse
+ADD-COLUMNS-FROM( ) method Browse
+ADD-FIRST( ) method Column (Applies only to combo-box browse columns)
+ADD-LAST( ) method Column (Applies only to combo-box browse columns)
+ADD-LIKE-COLUMN( ) method Browse
+CLEAR-SELECTION( ) method Column (Applies only to fill-in and combo-box browse column)
+CLEAR-SORT-ARROWS( ) method Browse
+CREATE-RESULT-LIST-ENTRY( ) method Browse
+DELETE( ) method Column (Applies only to combo-box browse columns)
+DELETE-CURRENT-ROW( ) method Browse
+DELETE-RESULT-LIST-ENTRY( ) method Browse
+DELETE-SELECTED-ROW( ) method Browse
+DELETE-SELECTED-ROWS( ) method Browse
+DESELECT-FOCUSED-ROW( ) method Browse
+DESELECT-ROWS( ) method Browse
+DESELECT-SELECTED-ROW( ) method Browse
+EDIT-CLEAR( ) method Cell (Applies only to fill-in and combo-box browse column)
+EDIT-COPY( ) method Cell (Applies only to fill-in and combo-box browse column)
+EDIT-CUT( ) method Cell (Applies only to fill-in and combo-box browse column)
+EDIT-PASTE( ) method Cell (Applies only to fill-in and combo-box browse column)
+EDIT-UNDO( ) method Cell (Applies only to fill-in and combo-box browse column)
+END-FILE-DROP( ) method Browse
+ENTRY( ) method Column (Applies only to combo-box browse columns)
+FETCH-SELECTED-ROW( ) method Browse
+GET-BROWSE-COLUMN( ) method Browse
+GET-DROPPED-FILE( ) method Browse
+GET-REPOSITIONED-ROW( ) method Browse
+INSERT( ) method Column (Applies only to combo-box browse columns)
+INSERT-ROW( ) method Browse
+IS-ROW-SELECTED( ) method Browse
+LOAD-MOUSE-POINTER( ) method Browse, Column
+LOOKUP( ) method Column (Applies only to combo-box browse columns)
+MOVE-AFTER-TAB-ITEM( ) method Browse
+MOVE-BEFORE-TAB-ITEM( ) method Browse
+MOVE-COLUMN( ) method Browse
+MOVE-TO-BOTTOM( ) method Browse
+MOVE-TO-TOP( ) method Browse
+REFRESH( ) method (Handle) Browse
+REPLACE( ) method Column (Applies only to combo-box browse columns)
+SCROLL-TO-CURRENT-ROW( ) method Browse
+SCROLL-TO-SELECTED-ROW( ) method Browse
+SELECT-ALL( ) method Browse
+SELECT-FOCUSED-ROW( ) method Browse
+SELECT-NEXT-ROW( ) method Browse
+SELECT-PREV-ROW( ) method Browse
+SELECT-ROW( ) method Browse
+SET-REPOSITIONED-ROW( ) method Browse
+SET-SELECTION( ) method Column (Applies only to fill-in and combo-box browse column)
+SET-SORT-ARROW( ) method Browse
+VALIDATE( ) method Browse, Column
+Events
+The following table lists all the events for the browse widget and their scope:
+Event Applies to
+Default keyboard events Browse, Cell
+Developer events Browse, Column, Cell
+Field editing key function events Cell
+General direct manipulation events Browse, Column
+Mouse events Browse, Column, Cell
+Navigation key function events Browse, Cell
+Universal key function events Browse, Column, Cell
+DEFAULT-ACTION Browse
+DROP-FILE-NOTIFY Browse
+END Browse
+END-SEARCH Browse
+ENTRY Browse, Cell
+HOME Browse
+LEAVE Browse, Cell
+OFF-END Browse
+OFF-HOME Browse
+ROW-DISPLAY Browse
+ROW-ENTRY Browse
+ROW-LEAVE Browse
+SCROLL-NOTIFY Browse
+START-SEARCH Browse
+VALUE-CHANGED Browse
+See also
+DEFINE BROWSE statement, CREATE BROWSE statement, Use the Browse Object topics in Develop ABL Applications.
+Next topic: BUTTON widget
+BUTTON widget
+A button widget represents a push button on the screen. The button can contain a textual label or it can have images associated with its pressed and unpressed states. You can define a static button with the DEFINE BUTTON statement. You can create dynamic buttons with the CREATE widget statement. This figure shows three buttons:
+Attributes
+AUTO-END-KEY attribute AUTO-GO attribute AUTO-RESIZE attribute
+COLUMN attribute CONTEXT-HELP-ID attribute CONVERT-3D-COLORS attribute
+DCOLOR attribute DEFAULT attribute DROP-TARGET attribute
+DYNAMIC attribute FLAT-BUTTON attribute FONT attribute
+FRAME attribute FRAME-COL attribute FRAME-NAME attribute
+FRAME-ROW attribute FRAME-X attribute FRAME-Y attribute
+HANDLE attribute HEIGHT-CHARS attribute HEIGHT-PIXELS attribute
+HELP attribute HIDDEN attribute HTML-CHARSET attribute
+IMAGE attribute IMAGE-DOWN attribute IMAGE-INSENSITIVE attribute
+IMAGE-UP attribute INSTANTIATING-PROCEDURE attribute
+LABEL attribute
+MANUAL-HIGHLIGHT attribute MENU-KEY attribute MENU-MOUSE attribute
+MOUSE-POINTER attribute MOVABLE attribute NAME attribute
+NEXT-SIBLING attribute NEXT-TAB-ITEM attribute NO-FOCUS attribute
+NUM-DROPPED-FILES attribute PARENT attribute PFCOLOR attribute
+POPUP-MENU attribute PREV-SIBLING attribute PREV-TAB-ITEM attribute
+PRIVATE-DATA attribute RESIZABLE attribute ROW attribute
+SELECTABLE attribute SELECTED attribute SENSITIVE attribute
+TAB-POSITION attribute TAB-STOP attribute TOOLTIP attribute
+TYPE attribute VISIBLE attribute WIDGET-ID attribute
+WIDTH-CHARS attribute WIDTH-PIXELS attribute WINDOW attribute
+X attribute Y attribute –
+Methods
+END-FILE-DROP( ) method GET-DROPPED-FILE( ) method
+LOAD-IMAGE( ) method LOAD-IMAGE-DOWN( ) method
+LOAD-IMAGE-INSENSITIVE( ) method LOAD-IMAGE-UP( ) method
+LOAD-MOUSE-POINTER( ) method MOVE-AFTER-TAB-ITEM( ) method
+MOVE-BEFORE-TAB-ITEM( ) method MOVE-TO-BOTTOM( ) method
+MOVE-TO-TOP( ) method –
+Events
+Default keyboard events Developer events
+Mouse events Navigation key function events
+Universal key function events CHOOSE
+DROP-FILE-NOTIFY ENTRY
+LEAVE –
+See also
+DEFINE BUTTON statement, CREATE widget statement
+Previous topic: BROWSE widget
+Next topic: COMBO-BOX widget
+COMBO-BOX widget
+A combo box is a field-level widget that combines the functionality of a fill-in field, radio set, and selection list into one fill-in and drop down list. You can set up a static combo box widget with the VIEW-AS phrase. You can create a dynamic combo box with the CREATE widget statement. The following figure shows a combo box:
+Attributes
+AUTO-COMPLETION attribute#rfi1424920413752__attributecombo-box-fn
+AUTO-RESIZE attribute AUTO-ZAP attribute#rfi1424920413752__attributecombo-box-fn
+BGCOLOR attribute#rfi1424920413752__attributecombo-box-fn
+COLUMN attribute CONTEXT-HELP-ID attribute
+DATA-TYPE attribute DBNAME attribute DCOLOR attribute#rfi1424920413752__attributecombo-box-fn
+DELIMITER attribute#rfi1424920413752__attributecombo-box-fn
+DISABLE-AUTO-ZAP attribute DROP-TARGET attribute
+DYNAMIC attribute EDIT-CAN-PASTE attribute#rfi1424920413752__attributecombo-box-fn
+EDIT-CAN-UNDO attribute#rfi1424920413752__attributecombo-box-fn
+FGCOLOR attribute#rfi1424920413752__attributecombo-box-fn
+FONT attribute#rfi1424920413752__attributecombo-box-fn
+FORMAT attribute#rfi1424920413752__attributecombo-box-fn
+FRAME attribute FRAME-COL attribute FRAME-NAME attribute
+FRAME-ROW attribute FRAME-X attribute FRAME-Y attribute
+HANDLE attribute#rfi1424920413752__attributecombo-box-fn
+HEIGHT-CHARS attribute#rfi1424920413752__attributecombo-box-fn
+HEIGHT-PIXELS attribute#rfi1424920413752__attributecombo-box-fn
+HELP attribute HIDDEN attribute HWND attribute
+INDEX attribute INNER-LINES attribute#rfi1424920413752__attributecombo-box-fn
+INPUT-VALUE attribute#rfi1424920413752__attributecombo-box-fn
+INSTANTIATING-PROCEDURE attribute
+LABEL attribute LABELS attribute
+LIST-ITEM-PAIRS attribute#rfi1424920413752__attributecombo-box-fn
+LIST-ITEMS attribute#rfi1424920413752__attributecombo-box-fn
+MANUAL-HIGHLIGHT attribute
+MAX-CHARS attribute#rfi1424920413752__attributecombo-box-fn
+MENU-KEY attribute MENU-MOUSE attribute
+MODIFIED attribute MOUSE-POINTER attribute MOVABLE attribute
+NAME attribute#rfi1424920413752__attributecombo-box-fn
+NEXT-SIBLING attribute NEXT-TAB-ITEM attribute
+NUM-DROPPED-FILES attribute NUM-ITEMS attribute#rfi1424920413752__attributecombo-box-fn
+PARENT attribute
+PFCOLOR attribute#rfi1424920413752__attributecombo-box-fn
+POPUP-MENU attribute PREV-SIBLING attribute
+PREV-TAB-ITEM attribute PRIVATE-DATA attribute RESIZABLE attribute
+ROW attribute#rfi1424920413752__attributecombo-box-fn
+SCREEN-VALUE attribute#rfi1424920413752__attributecombo-box-fn
+SELECTABLE attribute
+SELECTED attribute SELECTION-END attribute SELECTION-START attribute
+SELECTION-TEXT attribute SENSITIVE attribute SIDE-LABEL-HANDLE attribute
+SORT attribute#rfi1424920413752__attributecombo-box-fn
+SUBTYPE attribute#rfi1424920413752__attributecombo-box-fn
+TABLE attribute
+TAB-POSITION attribute TAB-STOP attribute TEXT-SELECTED attribute
+TOOLTIP attribute TYPE attribute#rfi1424920413752__attributecombo-box-fn
+UNIQUE-MATCH attribute#rfi1424920413752__attributecombo-box-fn
+VISIBLE attribute WIDGET-ID attribute WIDTH-CHARS attribute#rfi1424920413752__attributecombo-box-fn
+WIDTH-PIXELS attribute#rfi1424920413752__attributecombo-box-fn
+WINDOW attribute X attribute#rfi1424920413752__attributecombo-box-fn
+Y attribute#rfi1424920413752__attributecombo-box-fn
+– –
+Methods
+ADD-FIRST( ) method#rfi1424920413752__methodcombo-box-fn
+ADD-LAST( ) method#rfi1424920413752__methodcombo-box-fn
+CLEAR-SELECTION( ) method#rfi1424920413752__method-combo-box-fn
+DELETE( ) method#rfi1424920413752__method-combo-box-fn
+EDIT-CLEAR( ) method#rfi1424920413752__methodcombo-box-fn
+EDIT-COPY( ) method#rfi1424920413752__methodcombo-box-fn
+EDIT-CUT( ) method#rfi1424920413752__method-combo-box-fn
+EDIT-PASTE( ) method#rfi1424920413752__methodcombo-box-fn
+EDIT-UNDO( ) method#rfi1424920413752__methodcombo-box-fn
+END-FILE-DROP( ) method
+ENTRY( ) method#rfi1424920413752__method-combo-box-fn
+GET-DROPPED-FILE( ) method
+INSERT( ) method#rfi1424920413752__method-combo-box-fn
+LOAD-MOUSE-POINTER( ) method
+LOOKUP( ) method#rfi1424920413752__method-combo-box-fn
+MOVE-AFTER-TAB-ITEM( ) method
+MOVE-BEFORE-TAB-ITEM( ) method MOVE-TO-BOTTOM( ) method
+MOVE-TO-TOP( ) method REPLACE( ) method#rfi1424920413752__method-combo-box-fn
+SET-SELECTION( ) method#rfi1424920413752__method-combo-box-fn
+VALIDATE( ) method
+Events
+Default keyboard events Developer events
+Field editing key function events General direct manipulation events
+Mouse events Navigation key function events
+Universal key function events DROP-FILE-NOTIFY
+ENTRY LEAVE
+VALUE-CHANGED –
+See also
+CREATE widget statement, VIEW-AS phrase
+Previous topic: BUTTON widget
+Next topic: CONTROL-FRAME widget
+1 This attribute also applies to combo-box browse columns.
+2 This method also applies to combo-box browse columns.
+CONTROL-FRAME widget
+(Windows only; Graphical interfaces only)
+A control-frame is a field-level widget that holds an ActiveX control that you select for your application from the OpenEdge AppBuilder. A control-frame is always created dynamically.
+A control-frame has no visualization.
+The AVM instantiates two separate but related objects when you create a control-frame:
+• A control-frame widget
+• A control-frame COM object
+The widget itself provides a connection between the ActiveX control and the ABL user interface. When the widget is realized, the AVM creates a COM object that provides the real ActiveX control container support. Thus, the control-frame widget provides widget attributes and methods to manage the ABL side of the interface, while the control-frame COM object provides COM object properties and methods to gain access to the control itself.
+When you insert an ActiveX control into your application, the AppBuilder creates a control-frame with the CREATE widget statement and specifies a default name (NAME attribute value) for the widget. The AppBuilder creates a design-time instance of the ActiveX control based on the control you select in the AppBuilder, making its design-time properties available to the AppBuilder. When you save your application, the AppBuilder saves the design-time instance in a separate file (with .wrx extension) for use at run time.
+At run time, your application accesses the control indirectly through the control-frame widget. First, you use the COM-HANDLE attribute to return a component handle to the control-frame COM object. Second, you use this handle to access properties and methods of the control-frame COM object, which provide access to the ActiveX control itself.
+This is a SmartViewer into which a developer, using the AppBuilder, has dropped a literal widget, a fill-in widget, and a control-frame widget. The control-frame widget holds a Crescent spin control, as shown:
+Attributes
+Control-frame widget attributes
+BGCOLOR attribute COLUMN attribute COM-HANDLE attribute
+CONTEXT-HELP-ID attribute DYNAMIC attribute FRAME attribute
+FRAME-COL attribute FRAME-NAME attribute FRAME-ROW attribute
+FRAME-X attribute FRAME-Y attribute HEIGHT-CHARS attribute
+HEIGHT-PIXELS attribute HELP attribute HIDDEN attribute
+INSTANTIATING-PROCEDURE attribute
+HTML-CHARSET attribute NAME attribute
+NEXT-SIBLING attribute NEXT-TAB-ITEM attribute PARENT attribute
+PREV-SIBLING attribute PREV-TAB-ITEM attribute PRIVATE-DATA attribute
+ROW attribute SENSITIVE attribute TAB-POSITION attribute
+TAB-STOP attribute TYPE attribute VISIBLE attribute
+WIDGET-ID attribute WIDTH-CHARS attribute WIDTH-PIXELS attribute
+WINDOW attribute X attribute Y attribute
+Properties
+Control-frame COM object properties1
+Control-Name property 2 Controls property Height property#rfi1424920396683__mappedfn
+Left property#rfi1424920396683__mappedfn
+Name property#rfi1424920396683__mappedfn
+Top property#rfi1424920396683__mappedfn
+Widget-Handle property Width property#rfi1424920396683__mappedfn
+–
+Methods
+Control-frame widget methods:
+ADD-EVENTS-PROCEDURE( ) method MOVE-AFTER-TAB-ITEM( ) method
+MOVE-BEFORE-TAB-ITEM( ) method MOVE-TO-BOTTOM( ) method
+MOVE-TO-TOP( ) method REMOVE-EVENTS-PROCEDURE( ) method
+Control-frame COM object methods:4
+LoadControls( ) method –
+Events
+Developer events BACK-TAB navigation key function event
+END-ERROR universal key function event ENTRY
+GO universal key function event HELP universal key function event
+LEAVE TAB navigation key function event
+Notes
+• You must use the AppBuilder to incorporate one or more ActiveX control instances into an ABL application. The AppBuilder, operating in design mode, provides the facilities to set design-time properties for ActiveX controls.
+• After incorporating ActiveX controls into an application with the AppBuilder, the resulting window file, when compiled and executed, interacts with the ActiveX controls at run time.
+• To access a loaded ActiveX control at run time, use the control-frame COM-HANDLE attribute to get a handle to the control-frame COM object. To return a handle to the control, use the design-time name of the ActiveX control as a property of the control-frame COM object. For example:
+/* Control Frame widget */
+DEFINE VARIABLE hCFwid AS HANDLE NO-UNDO.
+/* Control Frame COM Object */
+DEFINE VARIABLE hCFcom AS COM-HANDLE NO-UNDO.
+/* ActiveX Control */
+DEFINE VARIABLE hDateSpin AS COM-HANDLE NO-UNDO.
+/* Control-frame created with handle hCFwid and loaded with ActiveX
+control named DateSpin. */
+ASSIGN
+hCFcom = hCFwid:COM-HANDLE
+hDateSpin = hCFcom:DateSpin.
+As an alternative, use the COM object Controls property to return a handle to a control collection. Use the control collection Item(1) method call to return the handle to the ActiveX control. (This control collection object provides support for searching multiple ActiveX controls in a control-frame, available in a future release of OpenEdge.)
+• You can use a single ActiveX control more than once in a single window file. Each time you insert the control, the AppBuilder creates a separate control-frame for it with a unique NAME attribute value.
+• Some control-frame widget attributes correspond to control-frame COM object properties so that setting one sets the other. You must directly set and read all ActiveX control run-time properties using a handle (also a COM-HANDLE value) to the control.
+• To trap control-frame events, use the ON statement, as with any ABL widget. To trap events for the associated ActiveX control, you must use ActiveX control (OCX) event procedures. Also, to "apply" an ActiveX control event from ABL, run the event procedure directly, like any ABL internal procedure. The APPLY statement has no effect on ActiveX controls. For more information, see the reference entries for the PROCEDURE statement and RUN statement.
+• ABL control-frame events are mutually exclusive with associated ActiveX control events. That is, only one event handler, either an ON trigger or an event procedure, fires for a single event.
+See also
+CREATE widget statement, Topics on ActiveX control container support in OpenEdge Programming Interfaces
+Previous topic: COMBO-BOX widget
+Next topic: DIALOG-BOX widget
+1 Accessible using a component handle set to the control-frame COM-HANDLE attribute value.The name of an ActiveX control that is contained by the control-frame COM object.Mapped to a corresponding control-frame widget attribute.
+2 The name of an ActiveX control that is contained by the control-frame COM object
+3 Mapped to a corresponding control-frame widget attribute.
+4 Accessible using a component handle set to the control-frame COM-HANDLE attribute value.
+DIALOG-BOX widget
+A dialog box is a special type of frame that is displayed in its own window. A dialog box differs from a window in two major respects:
+• It has a system window ventilator, but has no affordances for minimizing or maximizing.
+• While a dialog box has input focus, your application cannot perform any other processing until you complete the input or otherwise close the dialog box. That is, it is modal.
+You can specify that a frame be displayed as a dialog box by using the VIEW-AS phrase. You can create a dynamic dialog box with the CREATE widget statement.
+A dialog box can contain a frame family acting as the root frame. However a dialog box cannot be a child of another frame or dialog box; it can only be parented by a window.
+The following example dialog box contains:
+• Two fill-ins
+• One radio set
+• One toggle box
+• Five buttons
+Attributes
+BACKGROUND attribute BGCOLOR attribute BORDER-BOTTOM-CHARS attribute
+BORDER-BOTTOM-PIXELS attribute
+BORDER-LEFT-CHARS attribute BORDER-LEFT-PIXELS attribute
+BORDER-RIGHT-CHARS attribute
+BORDER-RIGHT-PIXELS attribute
+BORDER-TOP-CHARS attribute
+BORDER-TOP-PIXELS attribute BOX-SELECTABLE attribute CANCEL-BUTTON attribute
+COLUMN attribute CONTEXT-HELP attribute CONTEXT-HELP-FILE attribute
+CURRENT-ITERATION attribute (Widget Objects)
+DCOLOR attribute DEFAULT-BUTTON attribute
+DROP-TARGET attribute DYNAMIC attribute FGCOLOR attribute
+FIRST-CHILD attribute FONT attribute HANDLE attribute
+HEIGHT-CHARS attribute HEIGHT-PIXELS attribute HIDDEN attribute
+HTML-CHARSET attribute INHERIT-BGCOLOR attribute INHERIT-FGCOLOR attribute
+INSTANTIATING-PROCEDURE attribute
+LAST-CHILD attribute MENU-KEY attribute
+MENU-MOUSE attribute MOUSE-POINTER attribute NAME attribute
+NEXT-SIBLING attribute NUM-DROPPED-FILES attribute NUM-SELECTED-WIDGETS attribute
+PARENT attribute PFCOLOR attribute POPUP-MENU attribute
+PREV-SIBLING attribute PRIVATE-DATA attribute ROW attribute
+SCROLLABLE attribute SENSITIVE attribute THREE-D attribute
+TITLE attribute TITLE-BGCOLOR attribute TITLE-DCOLOR attribute
+TITLE-FGCOLOR attribute TITLE-FONT attribute TYPE attribute
+VIRTUAL-HEIGHT-CHARS attribute
+VIRTUAL-HEIGHT-PIXELS attribute
+VIRTUAL-WIDTH-CHARS attribute
+VIRTUAL-WIDTH-PIXELS attribute
+VISIBLE attribute WIDGET-ID attribute
+WIDTH-CHARS attribute WIDTH-PIXELS attribute WINDOW attribute
+X attribute Y attribute –
+Methods
+END-FILE-DROP( ) method GET-DROPPED-FILE( ) method)
+GET-SELECTED-WIDGET( ) method LOAD-MOUSE-POINTER( ) method
+VALIDATE( ) method –
+Events
+Developer events Frame-only direct manipulation events
+Universal key function events DROP-FILE-NOTIFY
+ENTRY LEAVE
+WINDOW-CLOSE –
+Note
+Generally, your application must wait to complete dialog box input before continuing with other processing. However, the WAIT-FOR statement for the procedure can also respond to an event for a procedure handle as long as the widget in the WAIT-FOR statement widget list is a procedure handle.
+See also
+CREATE widget statement, FRAME widget, WAIT-FOR statement (ABL only), VIEW-AS phrase, WINDOW widget
+Previous topic: CONTROL-FRAME widget
+Next topic: EDITOR widget
+EDITOR widget
+An editor is a field-level widget that allows you to perform complex text manipulation on a character value. You can set up a static editor widget with the VIEW-AS phrase. You can create a dynamic editor widget with the CREATE widget statement. For example:
+Attributes
+AUTO-INDENT attribute AUTO-RESIZE attribute BGCOLOR attribute
+BOX attribute BUFFER-CHARS attribute BUFFER-LINES attribute
+COLUMN attribute CONTEXT-HELP-ID attribute CURSOR-CHAR attribute
+CURSOR-LINE attribute CURSOR-OFFSET attribute DATA-TYPE attribute
+DBNAME attribute DCOLOR attribute DROP-TARGET attribute
+DYNAMIC attribute EDIT-CAN-PASTE attribute EDIT-CAN-UNDO attribute
+EMPTY attribute FGCOLOR attribute FONT attribute
+FRAME attribute FRAME-COL attribute FRAME-NAME attribute
+FRAME-ROW attribute FRAME-X attribute FRAME-Y attribute
+HANDLE attribute HEIGHT-CHARS attribute HEIGHT-PIXELS attribute
+HELP attribute HIDDEN attribute HTML-CHARSET attribute
+INNER-CHARS attribute INNER-LINES attribute INPUT-VALUE attribute
+INSTANTIATING-PROCEDURE attribute
+LABEL attribute LABELS attribute
+LARGE attribute LENGTH attribute MANUAL-HIGHLIGHT attribute
+MAX-CHARS attribute MENU-KEY attribute MENU-MOUSE attribute
+MODIFIED attribute MOUSE-POINTER attribute MOVABLE attribute
+NAME attribute NEXT-SIBLING attribute NEXT-TAB-ITEM attribute
+NUM-DROPPED-FILES attribute NUM-LINES attribute NUM-REPLACED attribute
+PARENT attribute PFCOLOR attribute POPUP-MENU attribute
+PREV-SIBLING attribute PREV-TAB-ITEM attribute PRIVATE-DATA attribute
+PROGRESS-SOURCE attribute READ-ONLY attribute RESIZABLE attribute
+RETURN-INSERTED attribute ROW attribute SCREEN-VALUE attribute
+SCROLLBAR-HORIZONTAL attribute
+SCROLLBAR-VERTICAL attribute SELECTABLE attribute
+SELECTED attribute SELECTION-END attribute SELECTION-START attribute
+SELECTION-TEXT attribute SENSITIVE attribute SIDE-LABEL-HANDLE attribute
+TABLE attribute TAB-POSITION attribute TAB-STOP attribute
+TEXT-SELECTED attribute TOOLTIP attribute TYPE attribute
+VISIBLE attribute WIDGET-ID attribute WIDTH-CHARS attribute
+WIDTH-PIXELS attribute WINDOW attribute WORD-WRAP attribute
+X attribute Y attribute –
+Methods
+CLEAR-SELECTION( ) method CONVERT-TO-OFFSET( ) method
+DELETE-CHAR( ) method DELETE-LINE( ) method
+EDIT-CLEAR( ) method EDIT-COPY( ) method
+EDIT-CUT( ) method EDIT-PASTE( ) method
+EDIT-UNDO( ) method END-FILE-DROP( ) method
+GET-DROPPED-FILE( ) method INSERT-BACKTAB( ) method
+INSERT-FILE( ) method INSERT-STRING( ) method
+INSERT-TAB( ) method LOAD-MOUSE-POINTER( ) method
+MOVE-AFTER-TAB-ITEM( ) method MOVE-BEFORE-TAB-ITEM( ) method
+MOVE-TO-BOTTOM( ) method MOVE-TO-EOF( ) method
+MOVE-TO-TOP( ) method READ-FILE( ) method
+REPLACE( ) method REPLACE-SELECTION-TEXT( ) method
+SAVE-FILE( ) method SEARCH( ) method
+SET-SELECTION( ) method VALIDATE( ) method
+Events
+Default keyboard events Developer events
+General direct manipulation events Mouse events
+Navigation key function events Universal key function events
+DROP-FILE-NOTIFY ENTRY
+LEAVE VALUE-CHANGED
+See also
+CREATE widget statement, VIEW-AS phrase
+Previous topic: DIALOG-BOX widget
+Next topic: FIELD-GROUP widget
+FIELD-GROUP widget
+A field group is the hidden parent of field-level widgets and child frames owned by a parent frame or dialog box. Thus, field groups are the actual children of frames and dialog boxes. A frame contains the following field groups:
+• A background field group (which includes the frame header)
+• For a one-down frame or dialog box: a single data field group containing field-level widgets and child frames
+• For a multiple-down frame: one data field group for each data iteration in the frame
+A field group has no visible representation. You cannot explicitly define or create field groups. They are generated automatically when frames are defined or created.
+Attributes
+COLUMN attribute DYNAMIC attribute FIRST-CHILD attribute
+FIRST-TAB-ITEM attribute FOREGROUND attribute HANDLE attribute
+HEIGHT-CHARS attribute HEIGHT-PIXELS attribute HTML-CHARSET attribute
+INSTANTIATING-PROCEDURE attribute
+LAST-CHILD attribute LAST-TAB-ITEM attribute
+NAME attribute NEXT-SIBLING attribute NUM-TABS attribute
+PARENT attribute PREV-SIBLING attribute PRIVATE-DATA attribute
+ROW attribute SENSITIVE attribute TYPE attribute
+VISIBLE attribute WIDTH-CHARS attribute WIDTH-PIXELS attribute
+WINDOW attribute X attribute Y attribute
+Note: For a field group, all of these attributes are read-only except for PRIVATE-DATA and SENSITIVE.
+Methods
+GET-TAB-ITEM( ) method –
+Events
+The FIELD-GROUP widget does not support any events.
+See also
+DIALOG-BOX widget, FRAME widget
+Previous topic: EDITOR widget
+Next topic: FILL-IN widget
+FILL-IN widget
+A fill-in widget is the simplest form of data representation. Within a fill-in, the field value is displayed as a string of characters that you can edit. A fill-in is the default representation for data. You can explicitly set up a static fill-in with the VIEW-AS phrase. You can create a dynamic fill-in with the CREATE widget statement.
+Note: The default sizing of fill-ins occurs only when you use the default font. When you explicitly specify a font, the AVM uses the average width of that font.
+Attributes
+ATTR-SPACE attribute AUTO-RESIZE attribute AUTO-RETURN attribute
+AUTO-ZAP attribute#rfi1424920385384__att-fillinfn
+BGCOLOR attribute#rfi1424920385384__att-fillinfn
+BLANK attribute
+COLUMN attribute CONTEXT-HELP-ID attribute CURSOR-OFFSET attribute#rfi1424920385384__att-fillinfn
+DATA-TYPE attribute DBNAME attribute DCOLOR attribute#rfi1424920385384__att-fillinfn
+DEBLANK attribute DISABLE-AUTO-ZAP attribute DROP-TARGET attribute
+DYNAMIC attribute EDIT-CAN-PASTE attribute#rfi1424920385384__att-fillinfn
+EDIT-CAN-UNDO attribute#rfi1424920385384__att-fillinfn
+FGCOLOR attribute#rfi1424920385384__att-fillinfn
+FONT attribute#rfi1424920385384__att-fillinfn
+FORMAT attribute#rfi1424920385384__att-fillinfn
+FRAME attribute FRAME-COL attribute FRAME-NAME attribute
+FRAME-ROW attribute FRAME-X attribute FRAME-Y attribute
+HANDLE attribute#rfi1424920385384__att-fillinfn
+HEIGHT-CHARS attribute#rfi1424920385384__att-fillinfn
+HEIGHT-PIXELS attribute#rfi1424920385384__att-fillinfn
+HELP attribute HIDDEN attribute HWND attribute
+INDEX attribute INPUT-VALUE attribute#rfi1424920385384__att-fillinfn
+INSTANTIATING-PROCEDURE attribute
+LABEL attribute LABELS attribute MANUAL-HIGHLIGHT attribute
+MENU-KEY attribute MENU-MOUSE attribute MODIFIED attribute
+MOUSE-POINTER attribute MOVABLE attribute NAME attribute#rfi1424920385384__att-fillinfn
+NEXT-SIBLING attribute NEXT-TAB-ITEM attribute NUM-DROPPED-FILES attribute
+PARENT attribute PASSWORD-FIELD attribute PFCOLOR attribute#rfi1424920385384__att-fillinfn
+POPUP-MENU attribute PREV-SIBLING attribute PREV-TAB-ITEM attribute
+PRIVATE-DATA attribute READ-ONLY attribute RESIZABLE attribute
+ROW attribute#rfi1424920385384__att-fillinfn
+SCREEN-VALUE attribute#rfi1424920385384__att-fillinfn
+SELECTABLE attribute
+SELECTED attribute SELECTION-END attribute SELECTION-START attribute
+SELECTION-TEXT attribute SENSITIVE attribute SIDE-LABEL-HANDLE attribute
+SUBTYPE attribute TABLE attribute TAB-POSITION attribute
+TAB-STOP attribute TEXT-SELECTED attribute TOOLTIP attribute
+TYPE attribute#rfi1424920385384__att-fillinfn
+VISIBLE attribute WIDGET-ID attribute
+WIDTH-CHARS attribute#rfi1424920385384__att-fillinfn
+WIDTH-PIXELS attribute#rfi1424920385384__att-fillinfn
+WINDOW attribute
+X attribute#rfi1424920385384__attfillin-fn
+Y attribute#rfi1424920385384__attfillin-fn
+–
+Methods
+CLEAR( ) method (FILL-IN Widget) CLEAR-SELECTION( ) method#rfi1424920385384__method-fillin-fn
+EDIT-CLEAR( ) method#rfi1424920385384__methodfillin-fn
+EDIT-COPY( ) method#rfi1424920385384__method-fillinfn
+EDIT-CUT( ) method#rfi1424920385384__method-fillin-fn
+EDIT-PASTE( ) method#rfi1424920385384__methodfillin-fn
+EDIT-UNDO( ) method#rfi1424920385384__method-fillinfn
+END-FILE-DROP( ) method
+GET-DROPPED-FILE( ) method LOAD-MOUSE-POINTER( ) method
+MOVE-AFTER-TAB-ITEM( ) method MOVE-BEFORE-TAB-ITEM( ) method
+MOVE-TO-BOTTOM( ) method MOVE-TO-TOP( ) method
+SET-SELECTION( ) method#rfi1424920385384__method-fillin-fn
+VALIDATE( ) method
+Events
+Default keyboard events Developer events
+Field editing key function events General direct manipulation events
+Mouse events Navigation key function events
+Universal key function events DROP-FILE-NOTIFY
+ENTRY LEAVE
+VALUE-CHANGED –
+See also
+CREATE widget statement, VIEW-AS phrase
+Previous topic: FIELD-GROUP widget
+Next topic: FRAME widget
+1 This attribute also applies to fill-in browse columns.
+2 This method also applies to fill-in browse columns.
+FRAME widget
+A frame is a display area within a window that can group together (contain) a set of field-level widgets and child frames. In addition to default frames set up by ABL, you can set up static frames with the Frame phrase or DEFINE FRAME statement. You can create a dynamic one-down frame with the CREATE widget statement.
+Related field-level widgets and child frames are actually parented by a single field group widget, which is owned, in turn, by the parenting frame. You parent static field-level widgets to a static frame using a DEFINE FRAME, FORM, or FRAME I/O statement. You parent dynamic field-level widgets to any frame by setting the FRAME attribute of each field-level widget to the handle of the parent frame. You can parent frame widgets to any frame by setting the FRAME attribute of each child frame to the handle of its parent frame.
+Frames in a parent and child relationship form a frame family, which is a hierarchy of parent and child frames ultimately parented by a window. The top parent frame that is parented by the window is the root frame of the frame family.
+The following figure shows a frame family with four frames, including three child frames titled Contact Information, Account Information, and PREVIOUS/NEXT:
+Attributes
+BACKGROUND attribute BGCOLOR attribute BLOCK-ITERATION-DISPLAY attribute
+BORDER-BOTTOM-CHARS attribute BORDER-BOTTOM-PIXELS attribute BORDER-LEFT-CHARS attribute
+BORDER-LEFT-PIXELS attribute BORDER-RIGHT-CHARS attribute
+BORDER-RIGHT-PIXELS attribute
+BORDER-TOP-CHARS attribute BORDER-TOP-PIXELS attribute BOX attribute
+BOX-SELECTABLE attribute CANCEL-BUTTON attribute CAREFUL-PAINT attribute
+CENTERED attribute COLUMN attribute CURRENT-ITERATION attribute (Widget Objects)
+DCOLOR attribute DDE-ERROR attribute DDE-ID attribute
+DDE-ITEM attribute DDE-NAME attribute DDE-TOPIC attribute
+DEFAULT-BUTTON attribute DOWN attribute DROP-TARGET attribute
+DYNAMIC attribute FGCOLOR attribute FIRST-CHILD attribute
+FONT attribute FRAME attribute GRID-FACTOR-HORIZONTAL attribute
+GRID-FACTOR-VERTICAL attribute
+GRID-SNAP attribute GRID-UNIT-HEIGHT-CHARS attribute
+GRID-UNIT-HEIGHT-PIXELS attribute
+GRID-UNIT-WIDTH-CHARS attribute
+GRID-UNIT-WIDTH-PIXELS attribute
+GRID-VISIBLE attribute HANDLE attribute HEIGHT-CHARS attribute
+HEIGHT-PIXELS attribute HIDDEN attribute HTML-CHARSET attribute
+HWND attribute INHERIT-BGCOLOR attribute INHERIT-FGCOLOR attribute
+INSTANTIATING-PROCEDURE attribute
+LABELS attribute LAST-CHILD attribute
+LINE attribute MANUAL-HIGHLIGHT attribute MENU-KEY attribute
+MENU-MOUSE attribute MOUSE-POINTER attribute MOVABLE attribute
+NAME attribute NEXT-SIBLING attribute NEXT-TAB-ITEM attribute
+NUM-DROPPED-FILES attribute NUM-SELECTED-WIDGETS attribute
+NUM-TO-RETAIN attribute
+OVERLAY attribute PAGE-BOTTOM attribute PAGE-TOP attribute
+PARENT attribute PFCOLOR attribute PIXELS-PER-COLUMN attribute
+PIXELS-PER-ROW attribute POPUP-MENU attribute PREV-SIBLING attribute
+PREV-TAB-ITEM attribute PRIVATE-DATA attribute RESIZABLE attribute
+ROW attribute SCROLLABLE attribute SELECTABLE attribute
+SELECTED attribute SENSITIVE attribute SIDE-LABELS attribute
+TAB-POSITION attribute TAB-STOP attribute THREE-D attribute
+TITLE attribute TITLE-BGCOLOR attribute TITLE-DCOLOR attribute
+TITLE-FGCOLOR attribute TITLE-FONT attribute TOP-ONLY attribute
+TYPE attribute VIRTUAL-HEIGHT-CHARS attribute
+VIRTUAL-HEIGHT-PIXELS attribute
+VIRTUAL-WIDTH-CHARS attribute
+VIRTUAL-WIDTH-PIXELS attribute
+VISIBLE attribute
+WIDGET-ID attribute WIDTH-CHARS attribute WIDTH-PIXELS attribute
+WINDOW attribute X attribute Y attribute
+Methods
+END-FILE-DROP( ) method GET-DROPPED-FILE( ) method
+GET-ITERATION( ) method (Widget Objects) GET-SELECTED-WIDGET( ) method
+LOAD-MOUSE-POINTER( ) method MOVE-AFTER-TAB-ITEM( ) method
+MOVE-BEFORE-TAB-ITEM( ) method MOVE-TO-BOTTOM( ) method
+MOVE-TO-TOP( ) method VALIDATE( ) method
+Events
+Developer events Frame-only direct manipulation events
+General direct manipulation events Mouse events
+Universal key function events DDE-NOTIFY1
+DROP-FILE-NOTIFY ENTRY
+LEAVE –
+Notes
+• Field-level widgets and child frames are not directly parented by a parent frame. They are parented by field groups that are owned by the parent frame. Thus, you can also parent a child frame by setting the child frame's PARENT attribute to the handle of a field group in the parent frame.
+To access all the field-level widgets and child frames owned by a frame, you must first use the frame's FIRST-CHILD or LAST-CHILD attribute to find a field group within the frame. You can then use the field group's NEXT-SIBLING or PREV-SIBLING attribute to find other field groups in the frame. You can use the field group's FIRST-CHILD or LAST-CHILD attribute to find a field-level widget or child frame within the field group. You can then use the field-level widget's or child frame's NEXT-SIBLING or PREV-SIBLING attribute to find other field-level widgets and child frames within the frame.
+• Child frames do not inherit the attributes of a parent frame.
+• When any of a frame's field-level widgets or child frames are viewed using the DISPLAY or ENABLE statement, the parent frame also becomes visible unless its HIDDEN attribute or the HIDDEN attribute of an ancestor widget is TRUE. However, explicitly setting the VISIBLE attribute to TRUE (using the VIEW statement) for a child frame or field-level widget makes all ancestor frames visible, unless the parent or an ancestor window has its HIDDEN attribute set to TRUE.
+• Child frames participate in the tab order along with any field-level widgets in the same parent frame. This means that the tab orders of all field-level widgets within a child frame is placed as a group within the tab order of the siblings of that child frame. Thus, tabbing proceeds between the field-level widgets of a root frame and the field-level widgets of all descendant frames. However, tabbing is not supported between sibling root frames (frames parented by a window).
+• You specify the position of a child frame relative to the display area of the parent frame. You must specify the position so that the upper left corner of the child frame lies within the display region of the parent frame. Otherwise at run time, when the procedure tries to realize the frame, the AVM raises the ERROR condition.
+• When you apply a NEXT-FRAME or PREV-FRAME navigation key function to a field-level widget, focus changes from the current frame family to the next or previous frame family (respectively) parented by the same window. That is, these key functions change focus between root frames, not between descendant frames.
+• In character interfaces, the SCROLL-MODE function key is available for a frame only if the SCROLLABLE attribute of the frame is TRUE. Scroll mode allows you to use the CURSOR-RIGHT and CURSOR-LEFT keys to scroll the frame horizontally. The SCROLL-MODE function key toggles scroll mode on and off for a frame that has focus.
+See also
+CREATE widget statement, DIALOG-BOX widget, DEFINE FRAME statement, Frame phrase
+Previous topic: FILL-IN widget
+Next topic: IMAGE widget
+1 Windows only. This event occurs only in dynamic data exchange (DDE) conversations. This event is supported only for backward compatibility. Use the Component Object Model (COM) instead. For more information, see the topics on DDE in OpenEdge Programming Interfaces
+IMAGE widget
+(Graphical interfaces only)
+An image is a graphic taken from an operating system file. It can be used by itself or within a button. You can define a static image with the DEFINE IMAGE statement, and create a dynamic image with the CREATE widget statement. You can specify an image for a button using the DEFINE BUTTON statement or the button methods for loading images.
+Attributes
+BGCOLOR attribute COLUMN attribute CONVERT-3D-COLORS attribute
+DYNAMIC attribute FGCOLOR attribute FRAME attribute
+FRAME-COL attribute FRAME-NAME attribute FRAME-ROW attribute
+FRAME-X attribute FRAME-Y attribute HANDLE attribute
+HEIGHT-CHARS attribute HEIGHT-PIXELS attribute HELP attribute
+HIDDEN attribute HTML-CHARSET attribute IMAGE attribute
+INSTANTIATING-PROCEDURE attribute
+MANUAL-HIGHLIGHT attribute MOVABLE attribute
+NAME attribute NEXT-SIBLING attribute PARENT attribute
+PREV-SIBLING attribute PRIVATE-DATA attribute RESIZABLE attribute
+RETAIN-SHAPE attribute ROW attribute SELECTABLE attribute
+SELECTED attribute SENSITIVE attribute STRETCH-TO-FIT attribute
+TOOLTIP attribute TRANSPARENT attribute TYPE attribute
+VISIBLE attribute WIDGET-ID attribute WIDTH-CHARS attribute
+WIDTH-PIXELS attribute WINDOW attribute X attribute
+Y attribute – –
+Methods
+LOAD-IMAGE( ) method MOVE-TO-BOTTOM( ) method
+MOVE-TO-TOP( ) method –
+Events
+Developer events General direct manipulation events
+Mouse events –
+See also
+CREATE widget statement, DEFINE BUTTON statement, DEFINE IMAGE statement
+Previous topic: FRAME widget
+Next topic: LITERAL widget
+LITERAL widget
+A literal widget is the label for a static field. If a field has a side label, you can find the handle of a literal widget by reading the field's SIDE-LABEL-HANDLE attribute. If the field has a column label, you can find the handle of the literal by examining the children of the frame's background field group. You cannot create a literal widget dynamically.
+Attributes
+BGCOLOR attribute COLUMN attribute DCOLOR attribute
+DYNAMIC attribute FGCOLOR attribute FONT attribute
+FRAME attribute FRAME-COL attribute FRAME-NAME attribute
+FRAME-ROW attribute FRAME-X attribute FRAME-Y attribute
+HANDLE attribute HEIGHT-CHARS attribute HEIGHT-PIXELS attribute
+HIDDEN attribute HTML-CHARSET attribute INPUT-VALUE attribute
+INSTANTIATING-PROCEDURE attribute
+MANUAL-HIGHLIGHT attribute MOVABLE attribute
+NAME attribute NEXT-SIBLING attribute PARENT attribute
+PREV-SIBLING attribute PRIVATE-DATA attribute RESIZABLE attribute
+ROW attribute SCREEN-VALUE attribute SELECTABLE attribute
+SELECTED attribute SENSITIVE attribute TYPE attribute
+VISIBLE attribute WIDTH-CHARS attribute WIDTH-PIXELS attribute
+WINDOW attribute X attribute Y attribute
+Methods
+MOVE-TO-BOTTOM( ) method MOVE-TO-TOP( ) method
+Events
+The literal widget does not support any events.
+See also
+SIDE-LABEL-HANDLE attribute
+Previous topic: IMAGE widget
+Next topic: MENU widget
+MENU widget
+A menu can be a menu bar or a pop-up menu. Menu bars contain sub-menus (specifically, pull-down menus) and in some environments menu items. Pop-up menus contain menu items and sub-menus. You can define a static menu with the DEFINE MENU statement. You can create a dynamic menu with the CREATE widget statement.
+The following is a menu bar:
+The following is a pop-up menu:
+Attributes
+DCOLOR attribute DYNAMIC attribute FIRST-CHILD attribute
+HANDLE attribute HTML-CHARSET attribute INSTANTIATING-PROCEDURE attribute
+LAST-CHILD attribute NAME attribute OWNER attribute
+PFCOLOR attribute POPUP-ONLY attribute PRIVATE-DATA attribute
+SENSITIVE attribute TITLE attribute TITLE-DCOLOR attribute
+TYPE attribute VISIBLE attribute WINDOW attribute
+Note: Color and font attributes for a menu are ignored in Windows.
+Methods
+The MENU widget does not support any methods.
+Events
+Developer events MENU-DROP 1
+See also
+CREATE widget statement, DEFINE MENU statement
+Previous topic: LITERAL widget
+Next topic: MENU-ITEM widget
+1 Supported only when the POPUP-ONLY attribute is set to TRUE and the menu is set as a popup for some other widget.
+MENU-ITEM widget
+A menu item is an item within a menu or submenu. A menu item can be a rule, a space, or a normal menu item. A normal menu item can be a command or a toggle-box item. Most menu item attributes and all menu item events apply only to normal menu items. You can set up a static menu item within a DEFINE MENU statement or DEFINE SUB-MENU statement. You can create a dynamic menu item with the CREATE widget statement.
+The following is a menu containing four menu items:
+Attributes
+ACCELERATOR attribute CHECKED attribute DCOLOR attribute
+DYNAMIC attribute HANDLE attribute HTML-CHARSET attribute
+INSTANTIATING-PROCEDURE attribute
+LABEL attribute NAME attribute
+NEXT-SIBLING attribute PARENT attribute PFCOLOR attribute
+PREV-SIBLING attribute PRIVATE-DATA attribute READ-ONLY attribute
+SENSITIVE attribute SUBTYPE attribute TOGGLE-BOX attribute
+TYPE attribute VISIBLE attribute WINDOW attribute
+Note: Color and font attributes for a menu item are ignored in Windows.
+Methods
+The MENU-ITEM widget does not support any methods.
+Events
+Developer events CHOOSE (except for toggle-box items)
+VALUE-CHANGED (for toggle-box items only) –
+See also
+CREATE widget statement, DEFINE MENU statement, DEFINE SUB-MENU statement
+Previous topic: MENU widget
+Next topic: RADIO-SET widget
+RADIO-SET widget
+A radio set is a group of values of which only one can be set at any time. You can define a static radio set by using the VIEW-AS phrase with any LOGICAL, CHARACTER, INTEGER, INT64, DECIMAL, or DATE value. You can create a dynamic radio set with the CREATE widget statement. For example:
+Attributes
+AUTO-RESIZE attribute BGCOLOR attribute COLUMN attribute
+CONTEXT-HELP-ID attribute DATA-TYPE attribute DBNAME attribute
+DCOLOR attribute DELIMITER attribute DROP-TARGET attribute
+DYNAMIC attribute EXPAND attribute FGCOLOR attribute
+FONT attribute FRAME attribute FRAME-COL attribute
+FRAME-NAME attribute FRAME-ROW attribute FRAME-X attribute
+FRAME-Y attribute HANDLE attribute HEIGHT-CHARS attribute
+HEIGHT-PIXELS attribute HELP attribute HIDDEN attribute
+HORIZONTAL attribute HTML-CHARSET attribute INPUT-VALUE attribute
+INSTANTIATING-PROCEDURE attribute
+LABEL attribute MANUAL-HIGHLIGHT attribute
+MENU-KEY attribute MENU-MOUSE attribute MODIFIED attribute
+MOUSE-POINTER attribute MOVABLE attribute NAME attribute
+NEXT-SIBLING attribute NEXT-TAB-ITEM attribute NUM-BUTTONS attribute
+NUM-DROPPED-FILES attribute PARENT attribute PFCOLOR attribute
+POPUP-MENU attribute PREV-SIBLING attribute PREV-TAB-ITEM attribute
+PRIVATE-DATA attribute RADIO-BUTTONS attribute RESIZABLE attribute
+ROW attribute SCREEN-VALUE attribute SELECTABLE attribute
+SELECTED attribute SENSITIVE attribute SIDE-LABEL-HANDLE attribute
+TABLE attribute TAB-POSITION attribute TAB-STOP attribute
+TOOLTIP attribute TYPE attribute VISIBLE attribute
+WIDGET-ID attribute WIDTH-CHARS attribute WIDTH-PIXELS attribute
+WINDOW attribute X attribute Y attribute
+Methods
+ADD-LAST( ) method DELETE( ) method
+DISABLE( ) method ENABLE( ) method
+END-FILE-DROP( ) method GET-DROPPED-FILE( ) method
+LOAD-MOUSE-POINTER( ) method MOVE-AFTER-TAB-ITEM( ) method
+MOVE-BEFORE-TAB-ITEM( ) method MOVE-TO-BOTTOM( ) method
+MOVE-TO-TOP( ) method REPLACE( ) method
+VALIDATE( ) method –
+Events
+Default keyboard events Developer events
+General direct manipulation events Mouse events
+Navigation key function events Universal key function events
+DROP-FILE-NOTIFY ENTRY
+LEAVE –
+See also
+CREATE widget statement, VIEW-AS phrase
+Previous topic: MENU-ITEM widget
+Next topic: RECTANGLE widget
+RECTANGLE widget
+A rectangle is a graphical widget that can be displayed in a frame foreground or background. You can define a static rectangle with the DEFINE RECTANGLE statement. You can create a dynamic rectangle with the CREATE widget statement. For example:
+Attributes
+BGCOLOR attribute COLUMN attribute DATA-TYPE attribute
+DCOLOR attribute DYNAMIC attribute EDGE-CHARS attribute
+EDGE-PIXELS attribute FGCOLOR attribute FILLED attribute
+FRAME attribute FRAME-COL attribute FRAME-NAME attribute
+FRAME-ROW attribute FRAME-X attribute FRAME-Y attribute
+GRAPHIC-EDGE attribute GROUP-BOX attribute HANDLE attribute
+HEIGHT-CHARS attribute HEIGHT-PIXELS attribute HELP attribute
+HIDDEN attribute HTML-CHARSET attribute INSTANTIATING-PROCEDURE attribute
+MANUAL-HIGHLIGHT attribute MOVABLE attribute NAME attribute
+NEXT-SIBLING attribute PARENT attribute PFCOLOR attribute
+PREV-SIBLING attribute PRIVATE-DATA attribute RESIZABLE attribute
+ROUNDED attribute ROW attribute SELECTABLE attribute
+SELECTED attribute SENSITIVE attribute TABLE attribute
+TOOLTIP attribute TYPE attribute VISIBLE attribute
+WIDGET-ID attribute WIDTH-CHARS attribute WIDTH-PIXELS attribute
+WINDOW attribute X attribute Y attribute
+Methods
+MOVE-TO-BOTTOM( ) method MOVE-TO-TOP( ) method
+Events
+Developer events General direct manipulation events
+Mouse events –
+See also
+CREATE widget statement, DEFINE RECTANGLE statement
+Previous topic: RADIO-SET widget
+Next topic: SELECTION-LIST widget
+SELECTION-LIST widget
+A selection list is a widget that contains a list of possible values for a field or variable. You can use the VIEW-AS phrase to set up a static selection list. You can use the CREATE widget statement to create a dynamic selection list. For example:
+Attributes
+AUTO-RESIZE attribute BGCOLOR attribute COLUMN attribute
+CONTEXT-HELP-ID attribute DATA-TYPE attribute DBNAME attribute
+DCOLOR attribute DELIMITER attribute DRAG-ENABLED attribute
+DROP-TARGET attribute DYNAMIC attribute FGCOLOR attribute
+FONT attribute FRAME attribute FRAME-COL attribute
+FRAME-NAME attribute FRAME-ROW attribute FRAME-X attribute
+FRAME-Y attribute HANDLE attribute HEIGHT-CHARS attribute
+HEIGHT-PIXELS attribute HELP attribute HIDDEN attribute
+HTML-CHARSET attribute INNER-CHARS attribute INNER-LINES attribute
+INPUT-VALUE attribute INSTANTIATING-PROCEDURE attribute
+LABEL attribute
+LIST-ITEM-PAIRS attribute LIST-ITEMS attribute MANUAL-HIGHLIGHT attribute
+MENU-KEY attribute MENU-MOUSE attribute MODIFIED attribute
+MOUSE-POINTER attribute MOVABLE attribute MULTIPLE attribute
+NAME attribute NEXT-SIBLING attribute NEXT-TAB-ITEM attribute
+NUM-DROPPED-FILES attribute NUM-ITEMS attribute PARENT attribute
+PFCOLOR attribute POPUP-MENU attribute PREV-SIBLING attribute
+PREV-TAB-ITEM attribute PRIVATE-DATA attribute RESIZABLE attribute
+ROW attribute SCREEN-VALUE attribute SCROLLBAR-HORIZONTAL attribute
+SCROLLBAR-VERTICAL attribute SELECTABLE attribute
+SELECTED attribute SENSITIVE attribute SIDE-LABEL-HANDLE attribute
+SORT attribute TABLE attribute TAB-POSITION attribute
+TAB-STOP attribute TOOLTIP attribute TYPE attribute
+VISIBLE attribute WIDGET-ID attribute WIDTH-CHARS attribute
+WIDTH-PIXELS attribute WINDOW attribute X attribute
+Y attribute
+Methods
+ADD-FIRST( ) method ADD-LAST( ) method
+DELETE( ) method END-FILE-DROP( ) method
+ENTRY( ) method GET-DROPPED-FILE( ) method
+INSERT( ) method IS-SELECTED( ) method
+LOAD-MOUSE-POINTER( ) method LOOKUP( ) method
+MOVE-AFTER-TAB-ITEM( ) method MOVE-BEFORE-TAB-ITEM( ) method
+MOVE-TO-BOTTOM( ) method MOVE-TO-TOP( ) method
+REPLACE( ) method SCROLL-TO-ITEM( ) method
+VALIDATE( ) method –
+Events
+Default keyboard events Developer events
+General direct manipulation events Mouse events
+Navigation key function events Universal key function events
+DEFAULT-ACTION DROP-FILE-NOTIFY
+ENTRY LEAVE
+VALUE-CHANGED –
+See also
+CREATE widget statement, VIEW-AS phrase
+Previous topic: RECTANGLE widget
+Next topic: SHADOW-WINDOW widget
+SHADOW-WINDOW widget
+(Windows only; GUI for .NET)
+A shadow window widget is a window associated with a .NET form that allows .NET forms and ABL windows to have parenting relationships to each other. A shadow window has no visible representation. It exists solely to support a .NET form and its relationship to ABL windows in an ABL session.
+You cannot explicitly create or delete a shadow window. The ABL virtual machine (AVM) automatically creates an associated shadow window when you instantiate a .NET form from the OpenEdge .NET Progress.Windows.Form class, and it automatically deletes the associated shadow window when you delete an instance Progress.Windows.Form.
+Attributes
+PARENT attribute –
+Methods
+The SHADOW-WINDOW widget does not support any methods.
+Events
+The SHADOW-WINDOW widget does not support any events.
+Notes
+• To obtain the shadow window handle of a .NET form, read the ProWinHandle property of the associated Progress.Windows.Form instance.
+• To parent an ABL window to a .NET form, assign the shadow window handle of the .NET form to the PARENT attribute of the ABL window.
+• To parent a .NET form to an ABL window, assign the handle of the ABL window to the PARENT attribute of the shadow window.
+• Shadow windows have no NEXT-SIBLING attribute or PREV-SIBLING attribute and therefore do not appear on the session window chain.
+• ABL does not create shadow windows for .NET forms that you instantiate from the System.Windows.Forms.Form class. Progress Software Corporation recommends that you always instantiate such forms from Progress.Windows.Form.
+See also
+Progress.Windows.Form class, ProWinHandle property, WINDOW widget
+Previous topic: SELECTION-LIST widget
+Next topic: SLIDER widget
+SLIDER widget
+The slider widget represents an integer value as a point on a sliding scale. You can use the VIEW-AS phrase to set up a static slider. You can use the CREATE widget statement to create a dynamic slider. For example:
+Attributes
+AUTO-RESIZE attribute BGCOLOR attribute COLUMN attribute
+CONTEXT-HELP-ID attribute DATA-TYPE attribute DBNAME attribute
+DCOLOR attribute DROP-TARGET attribute DYNAMIC attribute
+FGCOLOR attribute FONT attribute FRAME attribute
+FRAME-COL attribute FRAME-NAME attribute FRAME-ROW attribute
+FRAME-X attribute FRAME-Y attribute FREQUENCY attribute
+HANDLE attribute HEIGHT-CHARS attribute HEIGHT-PIXELS attribute
+HELP attribute HIDDEN attribute HORIZONTAL attribute
+HTML-CHARSET attribute INPUT-VALUE attribute INSTANTIATING-PROCEDURE attribute
+LABEL attribute LARGE-TO-SMALL attribute MANUAL-HIGHLIGHT attribute
+MAX-VALUE attribute MENU-KEY attribute MENU-MOUSE attribute
+MIN-VALUE attribute MODIFIED attribute MOUSE-POINTER attribute
+MOVABLE attribute NAME attribute NEXT-SIBLING attribute
+NEXT-TAB-ITEM attribute NO-CURRENT-VALUE attribute NUM-DROPPED-FILES attribute
+PARENT attribute PFCOLOR attribute POPUP-MENU attribute
+PREV-SIBLING attribute PREV-TAB-ITEM attribute PRIVATE-DATA attribute
+RESIZABLE attribute ROW attribute SCREEN-VALUE attribute
+SELECTABLE attribute SELECTED attribute SENSITIVE attribute
+SIDE-LABEL-HANDLE attribute TABLE attribute TAB-POSITION attribute
+TAB-STOP attribute TIC-MARKS attribute TOOLTIP attribute
+TYPE attribute VISIBLE attribute WIDGET-ID attribute
+WIDTH-CHARS attribute WIDTH-PIXELS attribute WINDOW attribute
+X attribute Y attribute –
+Methods
+END-FILE-DROP( ) method GET-DROPPED-FILE( ) method
+LOAD-MOUSE-POINTER( ) method MOVE-AFTER-TAB-ITEM( ) method
+MOVE-BEFORE-TAB-ITEM( ) method MOVE-TO-BOTTOM( ) method
+MOVE-TO-TOP( ) method VALIDATE( ) method
+Events
+Default keyboard events Developer events
+General direct manipulation events Mouse events
+Navigation key function events Universal key function events
+DROP-FILE-NOTIFY ENTRY
+LEAVE VALUE-CHANGED
+Notes
+• Only a value of the INTEGER or INT64 data type can be viewed as a slider. If using INT64, the value must remain within the -2147483648 to +2147483647 range.
+• In character interfaces, a slider widget has a minimum width that is dependent on the specified maximum value (MAX-VALUE attribute). The minimum height for a slider widget in a character interface is 2 character units. You can specify a value as low as 1.5 character units for the height of a slider in a character interface; however, ABL rounds the value up to 2 character units.
+See also
+CREATE widget statement, VIEW-AS phrase
+Previous topic: SHADOW-WINDOW widget
+Next topic: SUB-MENU widget
+SUB-MENU widget
+A submenu can be a pull-down menu within a menu bar, or a submenu within a pull-down menu or pop-up menu. You can define a static submenu with the DEFINE SUB-MENU statement. You can use the CREATE widget statement to create a dynamic submenu. For example:
+Attributes
+BGCOLOR attribute DCOLOR attribute DYNAMIC attribute
+FGCOLOR attribute FIRST-CHILD attribute FONT attribute
+HANDLE attribute HTML-CHARSET attribute INSTANTIATING-PROCEDURE attribute
+LABEL attribute LAST-CHILD attribute NAME attribute
+NEXT-SIBLING attribute PARENT attribute PFCOLOR attribute
+PREV-SIBLING attribute PRIVATE-DATA attribute SENSITIVE attribute
+TYPE attribute VISIBLE attribute WINDOW attribute
+Note: Color and font attributes for a submenu are ignored in Windows.
+Methods
+The SUB-MENU widget does not support any methods.
+Events
+Developer events MENU-DROP
+See also
+CREATE widget statement, DEFINE SUB-MENU statement
+Previous topic: SLIDER widget
+Next topic: TEXT widget
+TEXT widget
+You can use the text widget to display read-only text in a compact format. This is especially useful when you are creating hard-copy reports. You can use the VIEW-AS phrase to set up a static text widget. You can use the CREATE widget statement to create dynamic text widgets. For example:
+Attributes
+ATTR-SPACE attribute AUTO-RESIZE attribute BGCOLOR attribute
+BLANK attribute COLUMN attribute DATA-TYPE attribute
+DBNAME attribute DCOLOR attribute DEBLANK attribute
+DYNAMIC attribute FGCOLOR attribute FONT attribute
+FORMAT attribute FRAME attribute FRAME-COL attribute
+FRAME-NAME attribute FRAME-ROW attribute FRAME-X attribute
+FRAME-Y attribute HANDLE attribute HEIGHT-CHARS attribute
+HEIGHT-PIXELS attribute HELP attribute HIDDEN attribute
+HTML-CHARSET attribute INDEX attribute INPUT-VALUE attribute
+INSTANTIATING-PROCEDURE attribute
+LABEL attribute LABELS attribute
+MANUAL-HIGHLIGHT attribute MODIFIED attribute MOVABLE attribute
+NAME attribute NEXT-SIBLING attribute PARENT attribute
+PREV-SIBLING attribute PRIVATE-DATA attribute RESIZABLE attribute
+ROW attribute SCREEN-VALUE attribute SELECTABLE attribute
+SELECTED attribute SENSITIVE attribute SIDE-LABEL-HANDLE attribute
+TABLE attribute TOOLTIP attribute TYPE attribute
+VISIBLE attribute WIDGET-ID attribute WIDTH-CHARS attribute
+WIDTH-PIXELS attribute WINDOW attribute X attribute
+Y attribute – –
+Methods
+MOVE-TO-BOTTOM( ) method MOVE-TO-TOP( ) method
+Events
+Developer events General direct manipulation events
+Mouse events –
+Note
+You can view a field as text by specifying VIEW-AS TEXT for the field. You can make text the default representation for all fields in a frame by specifying USE-TEXT for the frame.
+See also
+CREATE widget statement, VIEW-AS phrase
+Previous topic: SUB-MENU widget
+Next topic: TOGGLE-BOX widget
+TOGGLE-BOX widget
+You can use the toggle box widget to represent a logical value. You can use the VIEW-AS phrase to set up a static toggle box, or the CREATE widget statement to create a dynamic toggle box. This figure shows five toggle boxes:
+Attributes
+AUTO-RESIZE attribute BGCOLOR attribute#rfi1424920337295__fn-atttoggle
+CHECKED attribute
+COLUMN attribute CONTEXT-HELP-ID attribute DATA-TYPE attribute
+DBNAME attribute DCOLOR attribute#rfi1424920337295__fn-atttoggle
+DROP-TARGET attribute
+DYNAMIC attribute FGCOLOR attribute#rfi1424920337295__fn-atttoggle
+FONT attribute
+FORMAT attribute FRAME attribute FRAME-COL attribute
+FRAME-NAME attribute FRAME-ROW attribute FRAME-X attribute
+FRAME-Y attribute HANDLE attribute#rfi1424920337295__fn-atttoggle
+HEIGHT-CHARS attribute#rfi1424920337295__fn-atttoggle
+HEIGHT-PIXELS attribute#rfi1424920337295__fn-atttoggle
+HELP attribute HIDDEN attribute
+HWND attribute INDEX attribute INPUT-VALUE attribute#rfi1424920337295__fn-atttoggle
+INSTANTIATING-PROCEDURE attribute
+LABEL attribute MANUAL-HIGHLIGHT attribute
+MENU-KEY attribute MENU-MOUSE attribute MODIFIED attribute
+MOUSE-POINTER attribute MOVABLE attribute NAME attribute#rfi1424920337295__fn-atttoggle
+NEXT-SIBLING attribute NEXT-TAB-ITEM attribute NUM-DROPPED-FILES attribute
+PARENT attribute PFCOLOR attribute#rfi1424920337295__fn-atttoggle
+POPUP-MENU attribute
+PREV-SIBLING attribute PREV-TAB-ITEM attribute PRIVATE-DATA attribute
+RESIZABLE attribute ROW attribute#rfi1424920337295__fn-atttoggle
+SCREEN-VALUE attribute#rfi1424920337295__fn-atttoggle
+SELECTABLE attribute SELECTED attribute SENSITIVE attribute
+TABLE attribute TAB-POSITION attribute TAB-STOP attribute
+TOOLTIP attribute TYPE attribute#rfi1424920337295__fn-atttoggle
+VISIBLE attribute
+WIDGET-ID attribute WIDTH-CHARS attribute#rfi1424920337295__fn-atttoggle
+WIDTH-PIXELS attribute#rfi1424920337295__fn-atttoggle
+WINDOW attribute X attribute#rfi1424920337295__fn-atttoggle
+Y attribute#rfi1424920337295__fn-atttoggle
+Methods
+END-FILE-DROP( ) method GET-DROPPED-FILE( ) method
+LOAD-MOUSE-POINTER( ) method MOVE-AFTER-TAB-ITEM( ) method
+MOVE-BEFORE-TAB-ITEM( ) method MOVE-TO-BOTTOM( ) method
+MOVE-TO-TOP( ) method VALIDATE( ) method
+Events
+Default keyboard events Developer events
+General direct manipulation events Mouse events
+Navigation key function events Universal key function events
+DROP-FILE-NOTIFY ENTRY
+LEAVE VALUE-CHANGED
+See also
+CREATE widget statement, VIEW-AS phrase
+Previous topic: TEXT widget
+Next topic: WINDOW widget
+1 This attribute also applies to toggle-box browse columns.
+WINDOW widget
+A window is a rectangular area on the screen that can contain frame widgets, parent dialog boxes, and parent other windows. It is surrounded by a standard border and affordances provided by your window system to manipulate the window's size, location, and appearance on the screen.
+The AVM automatically creates one default window for each session. You can create additional dynamic windows with the CREATE widget statement. Each additional window can be parented by the window system, creating siblings (the default) or by another window, creating child and parent window relationships. You create a parent and child relationship between two windows by setting the PARENT attribute of one (the child) to the handle of the other (the parent).
+Windows in a parent and child relationship form a window family, which is a hierarchy of parent and child windows ultimately parented by the window system. The top parent window that is parented by the window system is the root window of the window family.
+The following figure shows a window family consisting of a root window and its child window:
+Attributes
+ALWAYS-ON-TOP attribute BGCOLOR attribute COLUMN attribute
+CONTEXT-HELP attribute CONTEXT-HELP-FILE attribute CONTROL-BOX attribute
+DCOLOR attribute DROP-TARGET attribute DYNAMIC attribute
+FGCOLOR attribute FIRST-CHILD attribute FONT attribute
+FULL-HEIGHT-CHARS attribute FULL-HEIGHT-PIXELS attribute FULL-WIDTH-CHARS attribute
+FULL-WIDTH-PIXELS attribute HANDLE attribute HEIGHT-CHARS attribute
+HEIGHT-PIXELS attribute HIDDEN attribute HWND attribute
+ICON attribute INSTANTIATING-PROCEDURE attribute
+KEEP-FRAME-Z-ORDER attribute
+LAST-CHILD attribute MAX-BUTTON attribute MAX-HEIGHT-CHARS attribute
+MAX-HEIGHT-PIXELS attribute MAX-WIDTH-CHARS attribute MAX-WIDTH-PIXELS attribute
+MENU-BAR attribute MENU-KEY attribute MENU-MOUSE attribute
+MESSAGE-AREA attribute MESSAGE-AREA-FONT attribute MIN-BUTTON attribute
+MIN-HEIGHT-CHARS attribute MIN-HEIGHT-PIXELS attribute MIN-WIDTH-CHARS attribute
+MIN-WIDTH-PIXELS attribute MOUSE-POINTER attribute NAME attribute
+NEXT-SIBLING attribute NUM-DROPPED-FILES attribute NUM-SELECTED-WIDGETS attribute
+PARENT attribute PFCOLOR attribute POPUP-MENU attribute
+PREV-SIBLING attribute PRIVATE-DATA attribute RESIZE attribute
+ROW attribute SCREEN-LINES attribute SCROLL-BARS attribute
+SENSITIVE attribute SHOW-IN-TASKBAR attribute SMALL-ICON attribute
+SMALL-TITLE attribute STATUS-AREA attribute STATUS-AREA-FONT attribute
+THREE-D attribute TITLE attribute TOP-ONLY attribute
+TYPE attribute VIRTUAL-HEIGHT-CHARS attribute
+VIRTUAL-HEIGHT-PIXELS attribute
+VIRTUAL-WIDTH-CHARS attribute
+VIRTUAL-WIDTH-PIXELS attribute
+VISIBLE attribute
+WIDTH-CHARS attribute WIDTH-PIXELS attribute WINDOW attribute
+WINDOW-STATE attribute X attribute Y attribute
+Methods
+END-FILE-DROP( ) method GET-DROPPED-FILE( ) method
+GET-SELECTED-WIDGET( ) method LOAD-ICON( ) method
+LOAD-MOUSE-POINTER( ) method LOAD-SMALL-ICON( ) method
+MOVE-TO-BOTTOM( ) method MOVE-TO-TOP( ) method
+Events
+Developer events Mouse events
+Universal key function events DROP-FILE-NOTIFY
+ENTRY LEAVE
+PARENT-WINDOW-CLOSE WINDOW-CLOSE
+WINDOW-MAXIMIZED WINDOW-MINIMIZED
+WINDOW-RESIZED WINDOW-RESTORED
+Notes
+• In character user interfaces, you can have only one window (the default window).
+• Certain manipulations of a parent window have a default effect on its child windows and their descendants. You cannot modify the following effects:
+◦ Iconifying a window (triggered by a WINDOW-MINIMIZED event or by setting the WINDOW-STATE attribute to WINDOW-MINIMIZED) causes any of its descendant windows that are not already iconified to be hidden. Any child windows that are already iconified remain iconified along with their parents. Restoring the parent window (triggered by a WINDOW-RESTORED event) causes all of its descendant windows to receive a WINDOW-RESTORED event, restoring them to their visual state prior to the parent window being minimized.
+◦ When a window receives a WINDOW-MINIMIZED event, all of its descendant windows receive WINDOW-MINIMIZED events. When a window receives a WINDOW-RESTORED event, all of its descendant windows receive WINDOW-RESTORED events.
+◦ Applying a WINDOW-CLOSE event to a window causes all of its descendant windows to receive a PARENT-WINDOW-CLOSE event. However, any ancestor windows remain unaffected.
+• A WINDOW-MINIMIZED or WINDOW-RESTORED event applied to a child window has no effect on its parent or ancestor windows.
+• Resizing or changing the position of a window has no affect on the size or position of any descendants or ancestors of that window.
+• The following attributes have the Unknown value (?) until the window is realized:
+◦ FULL-HEIGHT-CHARS attribute
+◦ FULL-HEIGHT-PIXELS attribute
+◦ FULL-WIDTH-CHARS attribute
+◦ FULL-WIDTH-PIXELS attribute
+• If you embed the window in an OpenEdge .NET form, by setting the form's EmbeddedWindow property to the ABL window handle, some attributes and methods of the window are either ignored or change function. For more information, see the EmbeddedWindow property reference entry.
+See also
+CREATE widget statement, DIALOG-BOX widget
+Previous topic: TOGGLE-BOX widget
+Widget Reference
