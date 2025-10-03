@@ -3,9 +3,11 @@
 function parseAssign(parser) {
   parser.match('ASSIGN');
   const id = parser.eat('IDENT').value;
-  const assignTok = parser.eat('OP');
-  if (assignTok.value !== '=') {
-    throw new SyntaxError(`Expected '=' but got ${assignTok.value}`);
+  const assignTok = parser.match('OP');
+  if (assignTok) {
+    if (assignTok.value !== '=') {
+      throw new SyntaxError(`Expected '=' but got ${assignTok.value}`);
+    }
   }
   const value = parser.parseExpr();
   parser.optionalDot();
