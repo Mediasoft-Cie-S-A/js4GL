@@ -1016,6 +1016,8 @@
       prisma: prismaClient || null,
       records: Object.create(null),
       procedures:Object.create(null),
+      widgets:Object.create(null),
+      eventHandlers:Object.create(null),
       parent:null
     };
     env.output=(line)=>{
