@@ -215,10 +215,19 @@ function executeDefineWidget(node, env, context) {
   for (const attribute of node.attributes) {
     computedAttributes[attribute.name] = context.evalExpr(attribute.expr, env);
   }
-  widgetState.defineWidget(env, node.widgetType, node.name, {
+  const entry = widgetState.defineWidget(env, node.widgetType, node.name, {
     attributes: computedAttributes,
     noUndo: node.noUndo
   });
+  const varName = node.name.toLowerCase();
+  env.vars[varName] = entry;
+  if (env.varDefs) {
+    env.varDefs[varName] = {
+      dataType: node.widgetType,
+      isWidget: true,
+      noUndo: node.noUndo
+    };
+  }
 }
 
 const defineStatement = {

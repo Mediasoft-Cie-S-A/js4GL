@@ -410,7 +410,30 @@
     toIntegerValue
   });
 
+  function describeWidgetValue(widget){
+    if(!widget || typeof widget !== 'object') return '';
+    const attrs = widget.attributes || {};
+    const label = attrs.LABEL ?? attrs.TEXT ?? attrs.TITLE ?? attrs.HELP;
+    if(label != null && String(label).trim() !== ''){
+      return String(label);
+    }
+    const baseName = widget.displayName || widget.name || '';
+    const type = widget.type ? String(widget.type).toUpperCase() : 'WIDGET';
+    if(baseName){
+      return `[${type} ${baseName}]`;
+    }
+    return `[${type}]`;
+  }
+
   function formatDisplayValue(value, formatSpec){
+    if(value && typeof value === 'object' && value.__mini4glWidget){
+      const widgetText = describeWidgetValue(value);
+      const rawWidget = widgetText == null ? '' : String(widgetText);
+      if(formatSpec == null){
+        return rawWidget;
+      }
+      return formatDisplayValue(rawWidget, formatSpec);
+    }
     const raw=value==null ? '' : String(value);
     if(formatSpec==null) return raw;
     const spec=String(formatSpec);
