@@ -46,6 +46,13 @@ function parseDisplay(parser) {
       if (next.type === 'CENTERED') {
         parser.eat('CENTERED');
         withOptions.push('CENTERED');
+      } else if (next.type === 'FRAME') {
+        parser.eat('FRAME');
+        const frameTarget = parser.peek();
+        if (isExprStartToken(frameTarget)) {
+          parser.parseExpr();
+        }
+        withOptions.push('FRAME');
       } else if (next.type === 'IDENT') {
         withOptions.push(parser.eat('IDENT').value.toUpperCase());
       } else {
