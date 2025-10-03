@@ -114,6 +114,28 @@
         font-size: 0.9rem;
         min-height: 1.2rem;
       }
+      .reference-panel {
+        padding: 1.5rem;
+        background: rgba(17, 25, 40, 0.5);
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .reference-panel h2 {
+        margin-top: 0;
+        margin-bottom: 0.75rem;
+      }
+      .reference-frame {
+        width: 100%;
+        min-height: 480px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .reference-frame iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+        background: transparent;
+      }
     </style>
   </head>
   <body>
@@ -153,6 +175,17 @@
         </div>
       </section>
     </main>
+
+    <section class="reference-panel">
+      <h2>Référence ABL intégrée</h2>
+      <p>
+        Consultez la documentation complète des widgets Progress OpenEdge directement depuis le
+        navigateur. La référence conserve le format original fourni.
+      </p>
+      <div class="reference-frame">
+        <iframe src="./reference.html" title="Référence des widgets ABL"></iframe>
+      </div>
+    </section>
 
     <script src="./src/mini4gl/statements/assign.js"></script>
     <script src="./src/mini4gl/statements/define.js"></script>
@@ -268,6 +301,162 @@
           filename: 'find-example.p',
           source: `/* Exemple FIND */\n/* Requiert l'API distante et une base de démonstration. */\nFIND FIRST Customer WHERE Customer.Country = "France" NO-ERROR.\nIF Customer <> ? THEN\n  DISPLAY Customer.Name Customer.Country.\nELSE\n  DISPLAY "Aucun client français.".`
         }
+
+        ,{
+          id: 'widget-browse',
+          label: 'BROWSE widget',
+          description: 'Documentation de la grille BROWSE',
+          filename: 'browse-widget-example.p',
+          source: `/* Exemple BROWSE (à titre documentaire) */\nDEFINE QUERY qCustomer FOR Customer.\nDEFINE BROWSE brCustomer QUERY qCustomer DISPLAY Customer.Name Customer.Country WITH 10 DOWN.\n/* Voir la référence intégrée pour la liste complète des attributs et méthodes. */`
+        },
+        {
+          id: 'widget-button',
+          label: 'BUTTON widget',
+          description: 'Boutons dynamiques avec images',
+          filename: 'button-widget-example.p',
+          source: `/* Exemple BUTTON (documentation) */\nDEFINE BUTTON btnOk LABEL "OK".\nDEFINE BUTTON btnCancel LABEL "Annuler" AUTO-END-KEY.\nDISPLAY btnOk btnCancel WITH FRAME frDemo.`
+        },
+        {
+          id: 'widget-combo-box',
+          label: 'COMBO-BOX widget',
+          description: 'Combinaison liste + saisie',
+          filename: 'combo-box-widget-example.p',
+          source: `/* Exemple COMBO-BOX */\nDEFINE VARIABLE city AS CHARACTER VIEW-AS COMBO-BOX\n  LIST-ITEMS "Paris","Lyon","Marseille"\n  AUTO-COMPLETION TRUE.\nDISPLAY city.`
+        },
+        {
+          id: 'widget-control-frame',
+          label: 'CONTROL-FRAME widget',
+          description: 'Encapsuler un contrôle ActiveX',
+          filename: 'control-frame-widget-example.p',
+          source: `/* Exemple CONTROL-FRAME (non exécutable dans Mini 4GL) */\nCREATE CONTROL-FRAME hCtrl ASSIGN NAME = "DateSpin".\n/* Consulter la référence pour COM-HANDLE et les événements OCX. */`
+        },
+        {
+          id: 'widget-dialog-box',
+          label: 'DIALOG-BOX widget',
+          description: 'Fenêtre modale avec boutons',
+          filename: 'dialog-box-widget-example.p',
+          source: `/* Exemple DIALOG-BOX */\nDEFINE FRAME frDialog\n  customerName customerCountry btnOk btnCancel\n  WITH CENTERED THREE-D VIEW-AS DIALOG-BOX TITLE "Client".\nON GO OF btnOk DO: MESSAGE "Validation" VIEW-AS ALERT-BOX. END.\nWAIT-FOR GO OF FRAME frDialog.`
+        },
+        {
+          id: 'widget-editor',
+          label: 'EDITOR widget',
+          description: 'Zone de texte multi-lignes',
+          filename: 'editor-widget-example.p',
+          source: `/* Exemple EDITOR */\nDEFINE VARIABLE notes AS CHARACTER VIEW-AS EDITOR\n  LARGE WORD-WRAP SCROLLBAR-VERTICAL.`
+        },
+        {
+          id: 'widget-field-group',
+          label: 'FIELD-GROUP widget',
+          description: 'Comprendre la hiérarchie des frames',
+          filename: 'field-group-widget-example.p',
+          source: `/* Exemple FIELD-GROUP */\n/* Les FIELD-GROUP sont créés automatiquement.\n   Utilisez FRAME {&FRAME-NAME}:FIRST-CHILD pour explorer la hiérarchie. */`
+        },
+        {
+          id: 'widget-fill-in',
+          label: 'FILL-IN widget',
+          description: 'Zone de saisie classique',
+          filename: 'fill-in-widget-example.p',
+          source: `/* Exemple FILL-IN */\nDEFINE VARIABLE postalCode AS CHARACTER FORMAT "99999"\n  LABEL "Code postal" VIEW-AS FILL-IN.`
+        },
+        {
+          id: 'widget-frame',
+          label: 'FRAME widget',
+          description: 'Conteneur principal des widgets',
+          filename: 'frame-widget-example.p',
+          source: `/* Exemple FRAME */\nDEFINE FRAME frSummary\n  customerName customerBalance WITH THREE-D SIDE-LABELS.\nDISPLAY customerName customerBalance WITH FRAME frSummary.`
+        },
+        {
+          id: 'widget-image',
+          label: 'IMAGE widget',
+          description: 'Afficher une ressource graphique',
+          filename: 'image-widget-example.p',
+          source: `/* Exemple IMAGE */\nDEFINE IMAGE logo FILENAME "./images/logo.png" STRETCH-TO-FIT.`
+        },
+        {
+          id: 'widget-literal',
+          label: 'LITERAL widget',
+          description: 'Étiquettes statiques associées aux champs',
+          filename: 'literal-widget-example.p',
+          source: `/* Exemple LITERAL */\n/* Les littéraux sont générés via SIDE-LABEL-HANDLE. */`
+        },
+        {
+          id: 'widget-menu',
+          label: 'MENU widget',
+          description: 'Créer une barre de menu',
+          filename: 'menu-widget-example.p',
+          source: `/* Exemple MENU */\nDEFINE MENU mMain MENUBAR\n  SUB-MENU mFile LABEL "Fichier".\nDEFINE SUB-MENU mFile MENU-ITEM miExit LABEL "Quitter".`
+        },
+        {
+          id: 'widget-menu-item',
+          label: 'MENU-ITEM widget',
+          description: 'Entrées de menu et raccourcis',
+          filename: 'menu-item-widget-example.p',
+          source: `/* Exemple MENU-ITEM */\nDEFINE MENU-ITEM miAbout OF mHelp LABEL "À propos" ACCELERATOR "CTRL-A".`
+        },
+        {
+          id: 'widget-radio-set',
+          label: 'RADIO-SET widget',
+          description: 'Choix exclusif',
+          filename: 'radio-set-widget-example.p',
+          source: `/* Exemple RADIO-SET */\nDEFINE VARIABLE status AS CHARACTER\n  VIEW-AS RADIO-SET HORIZONTAL\n  RADIO-BUTTONS "Actif" "ACT", "Inactif" "INA".`
+        },
+        {
+          id: 'widget-rectangle',
+          label: 'RECTANGLE widget',
+          description: 'Décorer et regrouper les zones',
+          filename: 'rectangle-widget-example.p',
+          source: `/* Exemple RECTANGLE */\nDEFINE RECTANGLE boxInfo EDGE-CHARS 1 FILL-IN 0.\nDISPLAY boxInfo WITH FRAME frCanvas.`
+        },
+        {
+          id: 'widget-selection-list',
+          label: 'SELECTION-LIST widget',
+          description: 'Listes multi-sélection',
+          filename: 'selection-list-widget-example.p',
+          source: `/* Exemple SELECTION-LIST */\nDEFINE VARIABLE countries AS CHARACTER EXTENT 0\n  VIEW-AS SELECTION-LIST MULTIPLE SCROLLBAR-VERTICAL\n  LIST-ITEMS "France","Allemagne","Espagne".`
+        },
+        {
+          id: 'widget-shadow-window',
+          label: 'SHADOW-WINDOW widget',
+          description: 'Interopérabilité .NET',
+          filename: 'shadow-window-widget-example.p',
+          source: `/* Exemple SHADOW-WINDOW (documentation) */\n/* Utilisez Progress.Windows.Form:ProWinHandle pour obtenir le handle ABL. */`
+        },
+        {
+          id: 'widget-slider',
+          label: 'SLIDER widget',
+          description: 'Curseur graphique pour valeurs entières',
+          filename: 'slider-widget-example.p',
+          source: `/* Exemple SLIDER */\nDEFINE VARIABLE volume AS INTEGER VIEW-AS SLIDER\n  MIN-VALUE 0 MAX-VALUE 100 TIC-MARKS 10.`
+        },
+        {
+          id: 'widget-sub-menu',
+          label: 'SUB-MENU widget',
+          description: 'Menus déroulants imbriqués',
+          filename: 'sub-menu-widget-example.p',
+          source: `/* Exemple SUB-MENU */\nDEFINE SUB-MENU mRecent OF mFile LABEL "Récent".`
+        },
+        {
+          id: 'widget-text',
+          label: 'TEXT widget',
+          description: 'Sortie texte compacte',
+          filename: 'text-widget-example.p',
+          source: `/* Exemple TEXT */\nDEFINE VARIABLE header AS CHARACTER INIT "Référence ABL"\n  VIEW-AS TEXT.`
+        },
+        {
+          id: 'widget-toggle-box',
+          label: 'TOGGLE-BOX widget',
+          description: 'Cases à cocher logiques',
+          filename: 'toggle-box-widget-example.p',
+          source: `/* Exemple TOGGLE-BOX */\nDEFINE VARIABLE isActive AS LOGICAL\n  LABEL "Actif" VIEW-AS TOGGLE-BOX.`
+        },
+        {
+          id: 'widget-window',
+          label: 'WINDOW widget',
+          description: 'Gestion des fenêtres ABL',
+          filename: 'window-widget-example.p',
+          source: `/* Exemple WINDOW */\nDEFINE VARIABLE hWin AS WIDGET-HANDLE NO-UNDO.\nCREATE WINDOW hWin ASSIGN TITLE = "Fenêtre secondaire".\nVIEW hWin.`
+        }
+
       ];
 
       const defaultProgram = `/* Exemple : table de multiplication */\nASSIGN n = 5.\nASSIGN i = 1.\nDO WHILE i <= 10:\n  DISPLAY i, "x", n, "=", i * n.\n  i = i + 1.\nEND.\nDISPLAY "Terminé.".`;

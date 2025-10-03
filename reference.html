@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Référence ABL — Widgets</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: "Fira Code", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      }
+      body {
+        margin: 0;
+        padding: clamp(1rem, 3vw, 2.5rem);
+        background: var(--bg, #0f172a);
+        color: var(--fg, #f8fafc);
+        line-height: 1.55;
+      }
+      h1 {
+        margin-top: 0;
+      }
+      pre {
+        background: rgba(148, 163, 184, 0.12);
+        border-radius: 12px;
+        padding: clamp(1rem, 2.5vw, 2rem);
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .loading {
+        color: #38bdf8;
+      }
+      .error {
+        color: #f87171;
+      }
+    </style>
+  </head>
+  <body>
+    <article>
+      <header>
+        <h1>Référence ABL — Widgets</h1>
+        <p>
+          Version HTML du contenu fourni par l'utilisateur. Le texte est chargé depuis un fichier
+          brut afin de conserver la mise en forme originale.
+        </p>
+      </header>
+      <section>
+        <pre id="reference" class="loading">Chargement de la référence…</pre>
+      </section>
+    </article>
+    <script>
+      async function loadReference() {
+        const container = document.getElementById('reference');
+        try {
+          const response = await fetch('./docs/widget-reference.txt');
+          if (!response.ok) {
+            throw new Error(`Impossible de charger la référence (${response.status}).`);
+          }
+          const text = await response.text();
+          container.textContent = text;
+          container.classList.remove('loading');
+        } catch (error) {
+          container.textContent = error.message || 'Erreur lors du chargement de la référence.';
+          container.classList.remove('loading');
+          container.classList.add('error');
+        }
+      }
+
+      loadReference();
+    </script>
+  </body>
+</html>
