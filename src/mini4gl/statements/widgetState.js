@@ -26,6 +26,7 @@
     const key = normalizeWidgetName(name);
     if (!registry[key]) {
       registry[key] = {
+        __mini4glWidget: true,
         name: key,
         displayName: name,
         type: null,
