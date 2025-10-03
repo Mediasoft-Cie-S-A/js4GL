@@ -69,7 +69,14 @@
     'UNBUFFERED',
     'CONVERT',
     'TARGET',
-    'SOURCE'
+    'SOURCE',
+    'CREATE',
+    'ENABLE',
+    'VIEW',
+    'APPLY',
+    'ON',
+    'WAIT',
+    'TO'
   ]);
 
   function isAlpha(ch){ return /[A-Za-z_]/.test(ch); }
