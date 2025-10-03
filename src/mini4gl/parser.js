@@ -52,7 +52,24 @@
     'SAFE',
     'CDECL',
     'PASCAL',
-    'STDCALL'
+    'STDCALL',
+    'FROM',
+    'STREAM',
+    'HANDLE',
+    'TERMINAL',
+    'VALUE',
+    'OS',
+    'DIR',
+    'LOB',
+    'ATTR',
+    'LIST',
+    'BINARY',
+    'ECHO',
+    'MAP',
+    'UNBUFFERED',
+    'CONVERT',
+    'TARGET',
+    'SOURCE'
   ]);
 
   function isAlpha(ch){ return /[A-Za-z_]/.test(ch); }
