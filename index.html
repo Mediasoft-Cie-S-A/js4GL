@@ -92,6 +92,15 @@
         font-family: inherit;
         min-width: 180px;
       }
+      select {
+        padding: 0.55rem 0.75rem;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(30, 30, 30, 0.9);
+        color: inherit;
+        font-family: inherit;
+        min-width: 220px;
+      }
       pre {
         background: rgba(0, 0, 0, 0.55);
         border-radius: 8px;
@@ -117,12 +126,20 @@
         <div class="controls">
           <button id="run">Run</button>
           <button id="save" class="secondary">Save</button>
+          <button id="load" class="secondary">Charger .p</button>
           <button id="seed" class="secondary">Générer les données</button>
+          <label>
+            Exemples
+            <select id="examples">
+              <option value="">Programmes d'exemple…</option>
+            </select>
+          </label>
           <label>
             Nom du fichier
             <input type="text" id="filename" value="programme.4gl" />
           </label>
         </div>
+        <input type="file" id="fileLoader" accept=".p,.4gl,.txt" hidden />
         <textarea id="editor" spellcheck="false"></textarea>
       </section>
       <section class="panel">
@@ -157,29 +174,174 @@
       const editor = document.getElementById('editor');
       const runBtn = document.getElementById('run');
       const saveBtn = document.getElementById('save');
+      const loadBtn = document.getElementById('load');
       const seedBtn = document.getElementById('seed');
       const outputEl = document.getElementById('output');
       const statusEl = document.getElementById('status');
       const filenameInput = document.getElementById('filename');
+      const fileLoader = document.getElementById('fileLoader');
+      const examplesSelect = document.getElementById('examples');
       const storageKey = 'mini4gl-playground-source';
+
+      const examplePrograms = [
+        {
+          id: 'assign',
+          label: 'ASSIGN',
+          description: "Affecter et réutiliser des variables",
+          filename: 'assign-example.p',
+          source: `/* Exemple ASSIGN */\nDEFINE VARIABLE total AS INTEGER NO-UNDO.\nASSIGN total = 3.\nASSIGN total = total + 7.\nDISPLAY "Total =" total.`
+        },
+        {
+          id: 'define',
+          label: 'DEFINE',
+          description: 'Déclarer des variables et paramètres',
+          filename: 'define-example.p',
+          source: `/* Exemple DEFINE */\nDEFINE VARIABLE compteur AS INTEGER NO-UNDO INIT 10.\nDEFINE VARIABLE message AS CHARACTER NO-UNDO INIT "Valeur courante :".\nDISPLAY message compteur.`
+        },
+        {
+          id: 'procedure',
+          label: 'PROCEDURE',
+          description: 'Définir une procédure locale',
+          filename: 'procedure-example.p',
+          source: `/* Exemple PROCEDURE */\nPROCEDURE sayHello:\n  DEFINE INPUT PARAMETER pName AS CHARACTER NO-UNDO.\n  DISPLAY "Bonjour" pName.\nEND PROCEDURE.\n\nRUN sayHello ("Mini 4GL").`
+        },
+        {
+          id: 'run',
+          label: 'RUN',
+          description: 'Appeler une procédure avec paramètres',
+          filename: 'run-example.p',
+          source: `/* Exemple RUN */\nDEFINE VARIABLE message AS CHARACTER NO-UNDO INIT "Progress".\nRUN showMessage (INPUT message).\n\nPROCEDURE showMessage:\n  DEFINE INPUT PARAMETER pText AS CHARACTER NO-UNDO.\n  DISPLAY "Message reçu:" pText.\nEND PROCEDURE.`
+        },
+        {
+          id: 'display',
+          label: 'DISPLAY',
+          description: 'Afficher des valeurs et des expressions',
+          filename: 'display-example.p',
+          source: `/* Exemple DISPLAY */\nDEFINE VARIABLE prix AS DECIMAL NO-UNDO INIT 19.99.\nDEFINE VARIABLE quantite AS INTEGER NO-UNDO INIT 3.\nDISPLAY "Total HT:" prix * quantite \"EUR\".`
+        },
+        {
+          id: 'input',
+          label: 'INPUT',
+          description: 'Lire une valeur depuis les entrées simulées',
+          filename: 'input-example.p',
+          source: `/* Exemple INPUT */\nDEFINE VARIABLE saisie AS CHARACTER NO-UNDO.\nINPUT saisie.\nIF saisie = ? THEN\n  DISPLAY "Aucune valeur fournie.".\nELSE\n  DISPLAY "Valeur lue:" saisie.`
+        },
+        {
+          id: 'if',
+          label: 'IF',
+          description: 'Exécuter du code conditionnel',
+          filename: 'if-example.p',
+          source: `/* Exemple IF */\nDEFINE VARIABLE age AS INTEGER NO-UNDO INIT 21.\nIF age >= 18 THEN DO:\n  DISPLAY "Accès autorisé.".\nEND.\nELSE DO:\n  DISPLAY "Accès refusé.".\nEND.`
+        },
+        {
+          id: 'do',
+          label: 'DO',
+          description: 'Répéter avec un compteur',
+          filename: 'do-example.p',
+          source: `/* Exemple DO */\nDEFINE VARIABLE i AS INTEGER NO-UNDO.\nDO i = 1 TO 5:\n  DISPLAY "Itération" i.\nEND.`
+        },
+        {
+          id: 'repeat',
+          label: 'REPEAT',
+          description: 'Boucle avec condition WHILE',
+          filename: 'repeat-example.p',
+          source: `/* Exemple REPEAT */\nDEFINE VARIABLE compteur AS INTEGER NO-UNDO INIT 1.\nREPEAT WHILE compteur <= 3:\n  DISPLAY "Passage" compteur.\n  ASSIGN compteur = compteur + 1.\nEND.`
+        },
+        {
+          id: 'while',
+          label: 'WHILE',
+          description: 'Boucle tant que condition vraie',
+          filename: 'while-example.p',
+          source: `/* Exemple WHILE */\nDEFINE VARIABLE n AS INTEGER NO-UNDO INIT 4.\nWHILE n > 0 DO:\n  DISPLAY "Compte à rebours:" n.\n  ASSIGN n = n - 1.\nEND.`
+        },
+        {
+          id: 'foreach',
+          label: 'FOR EACH',
+          description: 'Parcourir les enregistrements Prisma (exige API)',
+          filename: 'foreach-example.p',
+          source: `/* Exemple FOR EACH */\n/* Requiert l'API distante et une base de démonstration. */\nFOR EACH Customer:\n  DISPLAY Customer.Name Customer.Country.\nEND.`
+        },
+        {
+          id: 'find',
+          label: 'FIND',
+          description: 'Récupérer un enregistrement (exige API)',
+          filename: 'find-example.p',
+          source: `/* Exemple FIND */\n/* Requiert l'API distante et une base de démonstration. */\nFIND FIRST Customer WHERE Customer.Country = "France" NO-ERROR.\nIF Customer <> ? THEN\n  DISPLAY Customer.Name Customer.Country.\nELSE\n  DISPLAY "Aucun client français.".`
+        }
+      ];
 
       const defaultProgram = `/* Exemple : table de multiplication */\nASSIGN n = 5.\nASSIGN i = 1.\nDO WHILE i <= 10:\n  DISPLAY i, "x", n, "=", i * n.\n  i = i + 1.\nEND.\nDISPLAY "Terminé.".`;
 
+      function persistSource(value) {
+        try {
+          localStorage.setItem(storageKey, value);
+        } catch (err) {
+          // stockage potentiellement indisponible
+        }
+      }
+
+      function updateEditorSource(source, filename) {
+        editor.value = source;
+        persistSource(source);
+        if (filename) {
+          filenameInput.value = filename;
+        }
+      }
+
       try {
         const saved = localStorage.getItem(storageKey);
-        editor.value = saved ?? defaultProgram;
+        updateEditorSource(saved ?? defaultProgram);
       } catch (err) {
         console.warn('Impossible de charger depuis le stockage local', err);
-        editor.value = defaultProgram;
+        updateEditorSource(defaultProgram);
       }
 
       editor.addEventListener('input', () => {
-        try {
-          localStorage.setItem(storageKey, editor.value);
-        } catch (err) {
-          // storage may be disabled
-        }
+        persistSource(editor.value);
       });
+
+      if (examplesSelect) {
+        examplePrograms.forEach((program) => {
+          const option = document.createElement('option');
+          option.value = program.id;
+          option.textContent = `${program.label} — ${program.description}`;
+          examplesSelect.appendChild(option);
+        });
+        examplesSelect.addEventListener('change', (event) => {
+          const selected = examplePrograms.find((program) => program.id === event.target.value);
+          if (!selected) {
+            return;
+          }
+          updateEditorSource(selected.source, selected.filename);
+          setStatus(`Exemple ${selected.label} chargé.`);
+        });
+      }
+
+      if (loadBtn && fileLoader) {
+        loadBtn.addEventListener('click', () => {
+          fileLoader.click();
+        });
+
+        fileLoader.addEventListener('change', () => {
+          const file = fileLoader.files && fileLoader.files[0];
+          if (!file) {
+            return;
+          }
+          const reader = new FileReader();
+          reader.onload = () => {
+            const text = typeof reader.result === 'string' ? reader.result : '';
+            updateEditorSource(text, file.name);
+            setStatus(`Fichier "${file.name}" chargé.`);
+            fileLoader.value = '';
+          };
+          reader.onerror = () => {
+            console.error(reader.error);
+            setStatus("Impossible de lire le fichier sélectionné.", true);
+            fileLoader.value = '';
+          };
+          reader.readAsText(file);
+        });
+      }
 
       function clearOutput() {
         outputEl.textContent = '';
@@ -218,7 +380,7 @@
               message = payload.message;
             }
           } catch (_) {
-            // ignore JSON parsing errors
+            // ignorer les erreurs de parsing JSON
           }
           throw new Error(message);
         }
