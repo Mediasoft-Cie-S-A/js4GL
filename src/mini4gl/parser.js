@@ -35,6 +35,7 @@
     'LABEL',
     'FORMAT',
     'WITH',
+    'FRAME',
     'CENTERED',
     'PROCEDURE',
     'RUN',
