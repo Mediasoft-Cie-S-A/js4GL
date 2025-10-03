@@ -1,31 +1,42 @@
 'use strict';
 
-const widgetTypesModule = typeof require === 'function'
-  ? require('./widgetTypes')
-  : (typeof globalThis !== 'undefined'
-      ? globalThis.Mini4GLWidgetTypes
+const createWidgetHelpers = (() => {
+  if (typeof require === 'function') {
+    try {
+      return require('./widgetHelpers');
+    } catch (error) {
+      // Ignore and fall back to globals.
+    }
+  }
+  const scope =
+    typeof globalThis !== 'undefined'
+      ? globalThis
       : typeof window !== 'undefined'
-        ? window.Mini4GLWidgetTypes
+        ? window
         : typeof global !== 'undefined'
-          ? global.Mini4GLWidgetTypes
-          : null);
+          ? global
+          : {};
+  return {
+    getWidgetTypesModule: () => scope.Mini4GLWidgetTypes || null,
+    getWidgetStateModule: () => scope.Mini4GLWidgetState || null
+  };
+})();
 
-const widgetStateModule = typeof require === 'function'
-  ? require('./widgetState')
-  : (typeof globalThis !== 'undefined'
-      ? globalThis.Mini4GLWidgetState
-      : typeof window !== 'undefined'
-        ? window.Mini4GLWidgetState
-        : typeof global !== 'undefined'
-          ? global.Mini4GLWidgetState
-          : null);
-
-if (!widgetTypesModule || !widgetStateModule) {
-  throw new Error('Widget helper modules are not available');
+function getWidgetTypesModule() {
+  const module = createWidgetHelpers.getWidgetTypesModule();
+  if (!module) {
+    throw new Error('Widget helper modules are not available');
+  }
+  return module;
 }
 
-const { readWidgetType } = widgetTypesModule;
-const widgetState = widgetStateModule;
+function getWidgetStateModule() {
+  const module = createWidgetHelpers.getWidgetStateModule();
+  if (!module) {
+    throw new Error('Widget helper modules are not available');
+  }
+  return module;
+}
 
 function isKeywordToken(tok, keyword) {
   if (!tok) {
@@ -41,6 +52,7 @@ function isKeywordToken(tok, keyword) {
 }
 
 function parseCreate(parser) {
+  const { readWidgetType } = getWidgetTypesModule();
   parser.eat('CREATE');
   const widgetType = readWidgetType(parser);
   const nameTok = parser.peek();
@@ -79,6 +91,7 @@ function parseCreate(parser) {
 }
 
 function executeCreateWidget(node, env) {
+  const widgetState = getWidgetStateModule();
   widgetState.createWidget(env, node.widgetType, node.name, {
     container: node.container || null
   });

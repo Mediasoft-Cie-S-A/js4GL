@@ -1,31 +1,42 @@
 'use strict';
 
-const widgetTypesModule = typeof require === 'function'
-  ? require('./widgetTypes')
-  : (typeof globalThis !== 'undefined'
-      ? globalThis.Mini4GLWidgetTypes
+const defineWidgetHelpers = (() => {
+  if (typeof require === 'function') {
+    try {
+      return require('./widgetHelpers');
+    } catch (error) {
+      // Ignore and fall back to globals.
+    }
+  }
+  const scope =
+    typeof globalThis !== 'undefined'
+      ? globalThis
       : typeof window !== 'undefined'
-        ? window.Mini4GLWidgetTypes
+        ? window
         : typeof global !== 'undefined'
-          ? global.Mini4GLWidgetTypes
-          : null);
+          ? global
+          : {};
+  return {
+    getWidgetTypesModule: () => scope.Mini4GLWidgetTypes || null,
+    getWidgetStateModule: () => scope.Mini4GLWidgetState || null
+  };
+})();
 
-const widgetStateModule = typeof require === 'function'
-  ? require('./widgetState')
-  : (typeof globalThis !== 'undefined'
-      ? globalThis.Mini4GLWidgetState
-      : typeof window !== 'undefined'
-        ? window.Mini4GLWidgetState
-        : typeof global !== 'undefined'
-          ? global.Mini4GLWidgetState
-          : null);
-
-if (!widgetTypesModule || !widgetStateModule) {
-  throw new Error('Widget helper modules are not available');
+function getWidgetTypesModule() {
+  const module = defineWidgetHelpers.getWidgetTypesModule();
+  if (!module) {
+    throw new Error('Widget helper modules are not available');
+  }
+  return module;
 }
 
-const { readWidgetType } = widgetTypesModule;
-const widgetState = widgetStateModule;
+function getWidgetStateModule() {
+  const module = defineWidgetHelpers.getWidgetStateModule();
+  if (!module) {
+    throw new Error('Widget helper modules are not available');
+  }
+  return module;
+}
 
 const SIMPLE_WIDGET_ATTRIBUTES = new Set(['LABEL', 'FORMAT', 'TITLE', 'TEXT', 'TOOLTIP', 'HELP']);
 
@@ -124,6 +135,7 @@ function parseWidgetDefinition(parser, widgetType) {
 }
 
 function parseDefine(parser) {
+  const { readWidgetType } = getWidgetTypesModule();
   parser.eat('DEFINE');
   const next = parser.peek();
   if (next.type === 'VARIABLE') {
@@ -198,6 +210,7 @@ function executeDefineParameter() {
 }
 
 function executeDefineWidget(node, env, context) {
+  const widgetState = getWidgetStateModule();
   const computedAttributes = Object.create(null);
   for (const attribute of node.attributes) {
     computedAttributes[attribute.name] = context.evalExpr(attribute.expr, env);

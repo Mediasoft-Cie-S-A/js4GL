@@ -1,20 +1,33 @@
 'use strict';
 
-const widgetStateModule = typeof require === 'function'
-  ? require('./widgetState')
-  : (typeof globalThis !== 'undefined'
-      ? globalThis.Mini4GLWidgetState
+const waitForWidgetHelpers = (() => {
+  if (typeof require === 'function') {
+    try {
+      return require('./widgetHelpers');
+    } catch (error) {
+      // Ignore and fall back to globals.
+    }
+  }
+  const scope =
+    typeof globalThis !== 'undefined'
+      ? globalThis
       : typeof window !== 'undefined'
-        ? window.Mini4GLWidgetState
+        ? window
         : typeof global !== 'undefined'
-          ? global.Mini4GLWidgetState
-          : null);
+          ? global
+          : {};
+  return {
+    getWidgetStateModule: () => scope.Mini4GLWidgetState || null
+  };
+})();
 
-if (!widgetStateModule) {
-  throw new Error('Widget state helpers are not available');
+function getWidgetStateModule() {
+  const module = waitForWidgetHelpers.getWidgetStateModule();
+  if (!module) {
+    throw new Error('Widget state helpers are not available');
+  }
+  return module;
 }
-
-const widgetState = widgetStateModule;
 
 function isKeywordToken(tok, keyword) {
   if (!tok) {
@@ -62,6 +75,7 @@ function parseWaitFor(parser) {
 }
 
 async function executeWaitFor(node, env, context) {
+  const widgetState = getWidgetStateModule();
   const eventValue = widgetState.resolveEventName(node.eventExpr, env, context);
   const trimmed = eventValue.trim();
   if (!trimmed) {
