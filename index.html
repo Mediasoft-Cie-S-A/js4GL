@@ -318,13 +318,7 @@
           filename: 'button-widget-example.p',
           source: `/* Exemple BUTTON (documentation) */\nDEFINE BUTTON btnOk LABEL "OK".\nDEFINE BUTTON btnCancel LABEL "Annuler" AUTO-END-KEY.\nDISPLAY btnOk btnCancel WITH FRAME frDemo.`
         },
-        {
-          id: 'widget-combo-box',
-          label: 'COMBO-BOX widget',
-          description: 'Combinaison liste + saisie',
-          filename: 'combo-box-widget-example.p',
-          source: `/* Exemple COMBO-BOX */\nDEFINE VARIABLE city AS CHARACTER VIEW-AS COMBO-BOX\n  LIST-ITEMS "Paris","Lyon","Marseille"\n  AUTO-COMPLETION TRUE.\nDISPLAY city.`
-        },
+     
         {
           id: 'widget-dialog-box',
           label: 'DIALOG-BOX widget',
@@ -365,13 +359,7 @@ END.
 ENABLE ALL WITH FRAME frDialog.
 WAIT-FOR CLOSE OF FRAME frDialog.`
         },
-        {
-          id: 'widget-editor',
-          label: 'EDITOR widget',
-          description: 'Zone de texte multi-lignes',
-          filename: 'editor-widget-example.p',
-          source: `/* Exemple EDITOR */\nDEFINE VARIABLE notes AS CHARACTER VIEW-AS EDITOR\n  LARGE WORD-WRAP SCROLLBAR-VERTICAL.`
-        },
+    
         {
           id: 'widget-fill-in',
           label: 'FILL-IN widget',
@@ -386,76 +374,8 @@ WAIT-FOR CLOSE OF FRAME frDialog.`
           filename: 'image-widget-example.p',
           source: `/* Exemple IMAGE */\nDEFINE IMAGE logo FILENAME "./images/logo.png" STRETCH-TO-FIT.`
         },
-        {
-          id: 'widget-literal',
-          label: 'LITERAL widget',
-          description: 'Étiquettes statiques associées aux champs',
-          filename: 'literal-widget-example.p',
-          source: `/* Exemple LITERAL */\n/* Les littéraux sont générés via SIDE-LABEL-HANDLE. */`
-        },
-        {
-          id: 'widget-menu',
-          label: 'MENU widget',
-          description: 'Créer une barre de menu',
-          filename: 'menu-widget-example.p',
-          source: `/* Exemple MENU */\nDEFINE MENU mMain MENUBAR\n  SUB-MENU mFile LABEL "Fichier".\nDEFINE SUB-MENU mFile MENU-ITEM miExit LABEL "Quitter".`
-        },
-        {
-          id: 'widget-menu-item',
-          label: 'MENU-ITEM widget',
-          description: 'Entrées de menu et raccourcis',
-          filename: 'menu-item-widget-example.p',
-          source: `/* Exemple MENU-ITEM */\nDEFINE MENU-ITEM miAbout OF mHelp LABEL "À propos" ACCELERATOR "CTRL-A".`
-        },
-        {
-          id: 'widget-radio-set',
-          label: 'RADIO-SET widget',
-          description: 'Choix exclusif',
-          filename: 'radio-set-widget-example.p',
-          source: `/* Exemple RADIO-SET */\nDEFINE VARIABLE status AS CHARACTER\n  VIEW-AS RADIO-SET HORIZONTAL\n  RADIO-BUTTONS "Actif" "ACT", "Inactif" "INA".`
-        },
-        {
-          id: 'widget-rectangle',
-          label: 'RECTANGLE widget',
-          description: 'Décorer et regrouper les zones',
-          filename: 'rectangle-widget-example.p',
-          source: `/* Exemple RECTANGLE */\nDEFINE RECTANGLE boxInfo EDGE-CHARS 1 FILL-IN 0.\nDISPLAY boxInfo WITH FRAME frCanvas.`
-        },
-        {
-          id: 'widget-selection-list',
-          label: 'SELECTION-LIST widget',
-          description: 'Listes multi-sélection',
-          filename: 'selection-list-widget-example.p',
-          source: `/* Exemple SELECTION-LIST */\nDEFINE VARIABLE countries AS CHARACTER EXTENT 0\n  VIEW-AS SELECTION-LIST MULTIPLE SCROLLBAR-VERTICAL\n  LIST-ITEMS "France","Allemagne","Espagne".`
-        },
-        {
-          id: 'widget-shadow-window',
-          label: 'SHADOW-WINDOW widget',
-          description: 'Interopérabilité .NET',
-          filename: 'shadow-window-widget-example.p',
-          source: `/* Exemple SHADOW-WINDOW (documentation) */\n/* Utilisez Progress.Windows.Form:ProWinHandle pour obtenir le handle ABL. */`
-        },
-        {
-          id: 'widget-slider',
-          label: 'SLIDER widget',
-          description: 'Curseur graphique pour valeurs entières',
-          filename: 'slider-widget-example.p',
-          source: `/* Exemple SLIDER */\nDEFINE VARIABLE volume AS INTEGER VIEW-AS SLIDER\n  MIN-VALUE 0 MAX-VALUE 100 TIC-MARKS 10.`
-        },
-        {
-          id: 'widget-sub-menu',
-          label: 'SUB-MENU widget',
-          description: 'Menus déroulants imbriqués',
-          filename: 'sub-menu-widget-example.p',
-          source: `/* Exemple SUB-MENU */\nDEFINE SUB-MENU mRecent OF mFile LABEL "Récent".`
-        },
-        {
-          id: 'widget-text',
-          label: 'TEXT widget',
-          description: 'Sortie texte compacte',
-          filename: 'text-widget-example.p',
-          source: `/* Exemple TEXT */\nDEFINE VARIABLE header AS CHARACTER INIT "Référence ABL"\n  VIEW-AS TEXT.`
-        },
+      
+       
         {
           id: 'widget-toggle-box',
           label: 'TOGGLE-BOX widget',
