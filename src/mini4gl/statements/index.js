@@ -16,6 +16,7 @@
       require('./apply'),
       require('./on'),
       require('./waitFor'),
+      require('./message'),
       require('./display'),
       require('./input'),
       require('./if'),

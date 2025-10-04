@@ -60,6 +60,9 @@ function parseWaitFor(parser) {
   let target = null;
   if (isKeywordToken(parser.peek(), 'OF')) {
     parser.eat(parser.peek().type);
+    if (isKeywordToken(parser.peek(), 'FRAME')) {
+      parser.eat(parser.peek().type);
+    }
     const targetTok = parser.peek();
     if (!targetTok || targetTok.type !== 'IDENT') {
       throw new SyntaxError('Expected widget name after OF');
