@@ -101,7 +101,7 @@
         font-family: inherit;
         min-width: 220px;
       }
-      pre {
+      .output-surface {
         background: rgba(0, 0, 0, 0.55);
         border-radius: 8px;
         padding: 1rem;
@@ -109,6 +109,50 @@
         min-height: 200px;
         overflow: auto;
         font-size: 0.95rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        white-space: pre-wrap;
+      }
+      .output-line {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem;
+        white-space: pre-wrap;
+      }
+      .output-line.centered {
+        justify-content: center;
+      }
+      .output-line-text {
+        white-space: pre-wrap;
+      }
+      .widget-button {
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 6px;
+        padding: 0.4rem 1.1rem;
+        background: rgba(255, 255, 255, 0.12);
+        color: inherit;
+        font-family: inherit;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s ease, transform 0.15s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+      }
+      .widget-button:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-1px);
+      }
+      .widget-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .widget-button.is-hidden {
+        opacity: 0.35;
       }
       .status {
         font-size: 0.9rem;
@@ -167,7 +211,7 @@
       <section class="panel">
         <div>
           <h2>Sortie</h2>
-          <pre id="output"></pre>
+          <div id="output" class="output-surface"></div>
         </div>
         <div>
           <h2>Statut</h2>
@@ -467,11 +511,84 @@ WAIT-FOR CLOSE OF FRAME frDialog.`
       }
 
       function clearOutput() {
-        outputEl.textContent = '';
+        outputEl.innerHTML = '';
+      }
+
+      function createTextSpan(text) {
+        const span = document.createElement('span');
+        span.className = 'output-line-text';
+        span.textContent = text;
+        return span;
+      }
+
+      function renderWidgetSegment(segment) {
+        const widgetType = String(segment.widgetType || '').toUpperCase();
+        if (widgetType === 'BUTTON') {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'widget-button';
+          const label =
+            (segment.attributes && segment.attributes.LABEL) ||
+            segment.label ||
+            segment.widgetName ||
+            'Bouton';
+          button.textContent = String(label);
+          button.disabled = segment.enabled === false;
+          if (segment.visible === false) {
+            button.classList.add('is-hidden');
+          }
+          return button;
+        }
+        const fallback = document.createElement('span');
+        fallback.className = 'output-line-text';
+        const text = segment.label || segment.widgetName || '[Widget]';
+        fallback.textContent = String(text);
+        return fallback;
       }
 
       function appendOutput(line) {
-        outputEl.textContent += line + '\n';
+        const lineEl = document.createElement('div');
+        lineEl.className = 'output-line';
+        let handled = false;
+
+        if (line && typeof line === 'object' && line.kind === 'rich') {
+          if (line.centered) {
+            lineEl.classList.add('centered');
+          }
+          const segments = Array.isArray(line.segments) ? line.segments : [];
+          segments.forEach((segment) => {
+            if (!segment) {
+              return;
+            }
+            if (segment.kind === 'widget') {
+              const element = renderWidgetSegment(segment);
+              if (element) {
+                lineEl.appendChild(element);
+                handled = true;
+              }
+              return;
+            }
+            if (segment.kind === 'text') {
+              lineEl.appendChild(
+                createTextSpan(segment.text != null ? String(segment.text) : '')
+              );
+              handled = true;
+              return;
+            }
+            lineEl.appendChild(createTextSpan(String(segment)));
+            handled = true;
+          });
+        } else {
+          lineEl.appendChild(createTextSpan(line == null ? '' : String(line)));
+          handled = true;
+        }
+
+        if (!handled) {
+          lineEl.appendChild(createTextSpan(''));
+        }
+
+        outputEl.appendChild(lineEl);
+        outputEl.scrollTop = outputEl.scrollHeight;
       }
 
       function setStatus(message, isError = false) {
@@ -483,7 +600,11 @@ WAIT-FOR CLOSE OF FRAME frDialog.`
         const collected = [];
         const result = await Mini4GL.interpret4GL(source, {
           onOutput: (line) => {
-            collected.push(String(line));
+            if (line && typeof line === 'object') {
+              collected.push(line);
+            } else {
+              collected.push(String(line));
+            }
           }
         });
         return collected.length ? collected : result.output || [];
