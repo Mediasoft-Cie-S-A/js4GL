@@ -285,6 +285,13 @@
           source: `/* Exemple DEFINE */\nDEFINE VARIABLE compteur AS INTEGER NO-UNDO INIT 10.\nDEFINE VARIABLE message AS CHARACTER NO-UNDO INIT "Valeur courante :".\nDISPLAY message compteur.`
         },
         {
+          id: 'define-temp-table',
+          label: 'DEFINE TEMP-TABLE',
+          description: 'Créer une table temporaire avec index',
+          filename: 'define-temp-table-example.p',
+          source: `/* Exemple DEFINE TEMP-TABLE */\nDEFINE TEMP-TABLE tempItem NO-UNDO\n  FIELD CatPage   AS INTEGER\n  FIELD Inventory AS DECIMAL\n  INDEX idxCatPage   IS PRIMARY CatPage ASCENDING\n  INDEX idxInventory Inventory DESCENDING.\n\nCREATE tempItem.\nASSIGN tempItem.CatPage = 12\n       tempItem.Inventory = 345.67.\n\nFOR EACH tempItem:\n  DISPLAY tempItem.CatPage tempItem.Inventory.\nEND.`
+        },
+        {
           id: 'procedure',
           label: 'PROCEDURE',
           description: 'Définir une procédure locale',
