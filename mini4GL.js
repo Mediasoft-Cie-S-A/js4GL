@@ -921,6 +921,7 @@
     mergeWhereClauses,
     buildOrderBy,
     lowerFirst,
+    describeWidgetValue,
     runProcedure
   };
 
@@ -941,8 +942,63 @@
 
   function ensureBrowserOutputSink(){
     if(typeof document === 'undefined') return null;
+
+    const renderLine=(container, line)=>{
+      if(line && typeof line === 'object' && line.kind === 'rich'){
+        const lineEl=document.createElement('div');
+        lineEl.style.display='flex';
+        lineEl.style.flexWrap='wrap';
+        lineEl.style.alignItems='center';
+        lineEl.style.gap='0.5rem';
+        lineEl.style.whiteSpace='pre-wrap';
+        if(line.centered){
+          lineEl.style.justifyContent='center';
+        }
+        const segments=Array.isArray(line.segments) ? line.segments : [];
+        segments.forEach(segment=>{
+          if(!segment) return;
+          if(segment.kind==='widget' && String(segment.widgetType || '').toUpperCase()==='BUTTON'){
+            const btn=document.createElement('button');
+            btn.type='button';
+            btn.textContent=segment.label || (segment.attributes && segment.attributes.LABEL) || '';
+            btn.disabled=segment.enabled===false;
+            btn.style.padding='0.35rem 0.9rem';
+            btn.style.borderRadius='6px';
+            btn.style.border='1px solid rgba(255,255,255,0.2)';
+            btn.style.background='rgba(255,255,255,0.08)';
+            btn.style.color='inherit';
+            btn.style.cursor=segment.enabled===false ? 'not-allowed' : 'pointer';
+            btn.style.fontFamily='inherit';
+            if(segment.visible===false){
+              btn.style.opacity='0.35';
+            }
+            lineEl.appendChild(btn);
+          } else if(segment.kind==='text'){
+            const span=document.createElement('span');
+            span.textContent=segment.text != null ? String(segment.text) : '';
+            lineEl.appendChild(span);
+          } else {
+            const fallback=document.createElement('span');
+            const text=segment && typeof segment === 'object' && 'label' in segment
+              ? segment.label
+              : segment;
+            fallback.textContent=text != null ? String(text) : '';
+            lineEl.appendChild(fallback);
+          }
+        });
+        container.appendChild(lineEl);
+        container.scrollTop = container.scrollHeight;
+        return;
+      }
+      const lineEl=document.createElement('div');
+      lineEl.style.whiteSpace='pre-wrap';
+      lineEl.textContent=line == null ? '' : String(line);
+      container.appendChild(lineEl);
+      container.scrollTop = container.scrollHeight;
+    };
+
     let wrapper=document.querySelector('[data-mini4gl-output]');
-    let pre=null;
+    let content=null;
     if(!wrapper){
       wrapper=document.createElement('section');
       wrapper.dataset.mini4glOutput='';
@@ -957,6 +1013,8 @@
       wrapper.style.boxShadow='0 8px 24px rgba(0,0,0,0.35)';
       wrapper.style.fontFamily='"Fira Code", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
       wrapper.style.zIndex='9999';
+      wrapper.style.display='flex';
+      wrapper.style.flexDirection='column';
 
       const heading=document.createElement('header');
       heading.textContent='Mini 4GL - Sortie';
@@ -966,33 +1024,40 @@
       heading.style.borderBottom='1px solid rgba(255,255,255,0.12)';
       wrapper.appendChild(heading);
 
-      pre=document.createElement('pre');
-      pre.style.margin='0';
-      pre.style.padding='0.75rem';
-      pre.style.fontSize='0.85rem';
-      pre.style.lineHeight='1.4';
-      pre.style.overflow='auto';
-      pre.style.maxHeight='calc(50vh - 2.5rem)';
-      wrapper.appendChild(pre);
+      content=document.createElement('div');
+      content.dataset.mini4glOutputContent='';
+      content.style.margin='0';
+      content.style.padding='0.75rem';
+      content.style.fontSize='0.85rem';
+      content.style.lineHeight='1.4';
+      content.style.overflow='auto';
+      content.style.maxHeight='calc(50vh - 2.5rem)';
+      content.style.display='flex';
+      content.style.flexDirection='column';
+      content.style.gap='0.35rem';
+      wrapper.appendChild(content);
 
       document.body.appendChild(wrapper);
     } else {
-      pre=wrapper.querySelector('pre');
-      if(!pre){
-        pre=document.createElement('pre');
-        pre.style.margin='0';
-        pre.style.padding='0.75rem';
-        pre.style.fontSize='0.85rem';
-        pre.style.lineHeight='1.4';
-        pre.style.overflow='auto';
-        pre.style.maxHeight='calc(50vh - 2.5rem)';
-        wrapper.appendChild(pre);
+      content=wrapper.querySelector('[data-mini4gl-output-content]');
+      if(!content){
+        content=document.createElement('div');
+        content.dataset.mini4glOutputContent='';
+        content.style.margin='0';
+        content.style.padding='0.75rem';
+        content.style.fontSize='0.85rem';
+        content.style.lineHeight='1.4';
+        content.style.overflow='auto';
+        content.style.maxHeight='calc(50vh - 2.5rem)';
+        content.style.display='flex';
+        content.style.flexDirection='column';
+        content.style.gap='0.35rem';
+        wrapper.appendChild(content);
       }
     }
-    pre.textContent='';
+    content.innerHTML='';
     return (line)=>{
-      pre.textContent += String(line) + '\n';
-      pre.scrollTop = pre.scrollHeight;
+      renderLine(content, line);
     };
   }
 
@@ -1044,8 +1109,9 @@
       parent:null
     };
     env.output=(line)=>{
-      if(callback) callback.call(env, String(line));
-      outputs.push(String(line));
+      const entry = line && typeof line === 'object' ? line : String(line);
+      if(callback) callback.call(env, entry);
+      outputs.push(entry);
     };
     if(prismaReadyPromise){
       await prismaReadyPromise;
