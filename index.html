@@ -309,15 +309,8 @@
           description: 'Récupérer un enregistrement (exige API)',
           filename: 'find-example.p',
           source: `/* Exemple FIND */\n/* Requiert l'API distante et une base de démonstration. */\nFIND FIRST Customer WHERE Customer.Country = "France" NO-ERROR.\nIF Customer <> ? THEN\n  DISPLAY Customer.Name Customer.Country.\nELSE\n  DISPLAY "Aucun client français.".`
-        }
-
-        ,{
-          id: 'widget-browse',
-          label: 'BROWSE widget',
-          description: 'Documentation de la grille BROWSE',
-          filename: 'browse-widget-example.p',
-          source: `/* Exemple BROWSE (à titre documentaire) */\nDEFINE QUERY qCustomer FOR Customer.\nDEFINE BROWSE brCustomer QUERY qCustomer DISPLAY Customer.Name Customer.Country WITH 10 DOWN.\n/* Voir la référence intégrée pour la liste complète des attributs et méthodes. */`
         },
+
         {
           id: 'widget-button',
           label: 'BUTTON widget',
@@ -333,18 +326,44 @@
           source: `/* Exemple COMBO-BOX */\nDEFINE VARIABLE city AS CHARACTER VIEW-AS COMBO-BOX\n  LIST-ITEMS "Paris","Lyon","Marseille"\n  AUTO-COMPLETION TRUE.\nDISPLAY city.`
         },
         {
-          id: 'widget-control-frame',
-          label: 'CONTROL-FRAME widget',
-          description: 'Encapsuler un contrôle ActiveX',
-          filename: 'control-frame-widget-example.p',
-          source: `/* Exemple CONTROL-FRAME (non exécutable dans Mini 4GL) */\nCREATE CONTROL-FRAME hCtrl ASSIGN NAME = "DateSpin".\n/* Consulter la référence pour COM-HANDLE et les événements OCX. */`
-        },
-        {
           id: 'widget-dialog-box',
           label: 'DIALOG-BOX widget',
           description: 'Fenêtre modale avec boutons',
           filename: 'dialog-box-widget-example.p',
-          source: `/* Exemple DIALOG-BOX */\nDEFINE FRAME frDialog\n  customerName customerCountry btnOk btnCancel\n  WITH CENTERED THREE-D VIEW-AS DIALOG-BOX TITLE "Client".\nON GO OF btnOk DO: MESSAGE "Validation" VIEW-AS ALERT-BOX. END.\nWAIT-FOR GO OF FRAME frDialog.`
+          source: `/* Exemple DIALOG-BOX fonctionnel et compatible */
+DEFINE TEMP-TABLE customer NO-UNDO
+  FIELD Name    AS CHARACTER
+  FIELD Country AS CHARACTER.
+
+CREATE customer.
+ASSIGN customer.Name = "Jean Dupont"
+       customer.Country = "France".
+
+DEFINE BUTTON btnOk     LABEL "OK".
+DEFINE BUTTON btnCancel LABEL "Annuler".
+
+DEFINE FRAME frDialog
+    customer.Name    LABEL "Nom"
+    customer.Country LABEL "Pays"
+    SKIP(1)
+    btnOk btnCancel
+    WITH CENTERED
+         THREE-D
+         VIEW-AS DIALOG-BOX
+         TITLE "Client".
+
+ON CHOOSE OF btnOk IN FRAME frDialog DO:
+    MESSAGE "Validation"
+        VIEW-AS ALERT-BOX INFO BUTTONS OK.
+    APPLY "CLOSE":U TO FRAME frDialog.
+END.
+
+ON CHOOSE OF btnCancel IN FRAME frDialog DO:
+    APPLY "CLOSE":U TO FRAME frDialog.
+END.
+
+ENABLE ALL WITH FRAME frDialog.
+WAIT-FOR CLOSE OF FRAME frDialog.`
         },
         {
           id: 'widget-editor',
@@ -354,25 +373,11 @@
           source: `/* Exemple EDITOR */\nDEFINE VARIABLE notes AS CHARACTER VIEW-AS EDITOR\n  LARGE WORD-WRAP SCROLLBAR-VERTICAL.`
         },
         {
-          id: 'widget-field-group',
-          label: 'FIELD-GROUP widget',
-          description: 'Comprendre la hiérarchie des frames',
-          filename: 'field-group-widget-example.p',
-          source: `/* Exemple FIELD-GROUP */\n/* Les FIELD-GROUP sont créés automatiquement.\n   Utilisez FRAME {&FRAME-NAME}:FIRST-CHILD pour explorer la hiérarchie. */`
-        },
-        {
           id: 'widget-fill-in',
           label: 'FILL-IN widget',
           description: 'Zone de saisie classique',
           filename: 'fill-in-widget-example.p',
           source: `/* Exemple FILL-IN */\nDEFINE VARIABLE postalCode AS CHARACTER FORMAT "99999"\n  LABEL "Code postal" VIEW-AS FILL-IN.`
-        },
-        {
-          id: 'widget-frame',
-          label: 'FRAME widget',
-          description: 'Conteneur principal des widgets',
-          filename: 'frame-widget-example.p',
-          source: `/* Exemple FRAME */\nDEFINE FRAME frSummary\n  customerName customerBalance WITH THREE-D SIDE-LABELS.\nDISPLAY customerName customerBalance WITH FRAME frSummary.`
         },
         {
           id: 'widget-image',
