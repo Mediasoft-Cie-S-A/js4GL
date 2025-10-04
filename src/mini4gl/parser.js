@@ -3,6 +3,7 @@
     'ASSIGN',
     'DISPLAY',
     'PRINT',
+    'MESSAGE',
     'INPUT',
     'IF',
     'THEN',
