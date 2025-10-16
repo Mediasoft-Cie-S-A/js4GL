@@ -5,6 +5,8 @@ function parseFind(parser) {
   let qualifier = null;
   if (parser.match('FIRST')) {
     qualifier = 'FIRST';
+  } else if (parser.match('LAST')) {
+    qualifier = 'LAST';
   }
   const target = parser.eat('IDENT').value;
   let relation = null;
@@ -38,8 +40,15 @@ async function executeFind(node, env, context) {
   const targetLower = node.target.toLowerCase();
   const delegateName = context.lowerFirst(node.target);
   const delegate = prisma[delegateName];
-  if (!delegate || typeof delegate.findFirst !== 'function') {
+  if (!delegate) {
     throw new Error(`Prisma model ${node.target} is not available`);
+  }
+  const qualifier = (node.qualifier || 'FIRST').toUpperCase();
+  if (qualifier === 'LAST' && typeof delegate.findMany !== 'function') {
+    throw new Error(`Prisma model ${node.target} does not support findMany`);
+  }
+  if (qualifier !== 'LAST' && typeof delegate.findFirst !== 'function') {
+    throw new Error(`Prisma model ${node.target} does not support findFirst`);
   }
   const query = {};
   const whereClause = context.buildWhere(node.where, env, targetLower);
@@ -55,7 +64,15 @@ async function executeFind(node, env, context) {
     const relationClause = context.relationWhere(targetLower, parentKey, parentRecord);
     query.where = context.mergeWhereClauses(query.where || null, relationClause);
   }
-  const record = await delegate.findFirst(query);
+  let record = null;
+  if (qualifier === 'LAST') {
+    const results = await delegate.findMany(query);
+    if (results.length) {
+      record = results[results.length - 1];
+    }
+  } else {
+    record = await delegate.findFirst(query);
+  }
   if (!record) {
     if (node.noError) {
       if (env.records) {
